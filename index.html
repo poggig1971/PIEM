@@ -26,7 +26,8 @@ nav.tabs{display:flex;gap:8px;padding:10px 22px;background:#fff;border-bottom:1p
 .tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .tab .n{font-weight:400;font-size:11px;opacity:.7;margin-left:4px}
 main{display:flex;gap:0;min-height:calc(100vh - 130px)}
-aside{width:330px;min-width:330px;background:#fff;border-right:1px solid var(--border);padding:14px;overflow:auto;max-height:calc(100vh - 130px);position:sticky;top:53px}
+:root{--ttop:53px}
+aside{width:330px;min-width:330px;background:#fff;border-right:1px solid var(--border);padding:14px;overflow:auto;max-height:calc(100vh - var(--ttop));position:sticky;top:var(--ttop)}
 .searchbox{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .searchbox input[type=text]{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none}
 .searchbox input[type=text]:focus{border-color:var(--blue)}
@@ -43,7 +44,7 @@ ul.tree ul{list-style:none;padding-left:16px}
 .tnode.open .car{transform:rotate(90deg)}
 .tnode .cnt{margin-left:auto;font-size:10px;color:var(--mut);flex-shrink:0}
 .tnode.sel .cnt{color:#cfd9f3}
-section.content{flex:1;padding:16px 22px;overflow:auto}
+section.content{flex:1;padding:16px 22px;min-width:0}
 .crumb{font-size:12px;color:var(--mut);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .crumb b{color:var(--navy)}
 .crumb button{border:none;background:#e8edf8;border-radius:10px;padding:2px 10px;font-size:11px;color:var(--navy);cursor:pointer}
@@ -52,7 +53,7 @@ section.content{flex:1;padding:16px 22px;overflow:auto}
 .bar .exp{margin-left:auto;border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer}
 .bar .exp:hover{background:#eef2fb}
 table.lst{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(21,41,94,.08)}
-table.lst thead th{background:var(--navy);color:#fff;text-align:left;font-size:12px;padding:10px 12px;position:sticky;top:53px;cursor:pointer;user-select:none;white-space:nowrap}
+table.lst thead th{background:var(--navy);color:#fff;text-align:left;font-size:12px;padding:10px 12px;position:sticky;top:var(--ttop);cursor:pointer;user-select:none;white-space:nowrap;z-index:20}
 table.lst thead th.num{text-align:right}
 table.lst tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
 table.lst tbody tr:hover{background:#f0f4fd;cursor:pointer}
@@ -95,6 +96,26 @@ table.an tr.foot td{font-weight:700;border-top:2px solid var(--navy);background:
 table.an tr.tot td{background:var(--navy);color:#fff;font-weight:800;font-size:13px}
 table.an a{color:var(--blue);text-decoration:none;font-family:Consolas,monospace;font-size:11px}
 table.an a:hover{text-decoration:underline}
+.flag{border:none;background:none;cursor:pointer;font-size:13px;color:var(--amber);padding:0 2px;line-height:1}
+.flag:hover{transform:scale(1.25)}
+.sgbtn{border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);border-radius:8px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+.sgbtn:hover{filter:brightness(.96)}
+#ovl2{position:fixed;inset:0;background:rgba(12,20,45,.45);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;overflow:auto}
+#ovl2.show{display:flex}
+.sgpanel{background:#fff;border-radius:14px;max-width:620px;width:100%;box-shadow:0 12px 50px rgba(0,0,0,.35)}
+.sgpanel .phead{border-radius:14px 14px 0 0;background:#7a5800}
+.sgform{padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.sgform .ctx{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.5}
+.sgform .ctx b{font-family:Consolas,monospace}
+.sgform label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);display:block;margin-bottom:4px}
+.sgform select,.sgform input,.sgform textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+.sgform select:focus,.sgform input:focus,.sgform textarea:focus{border-color:var(--blue)}
+.sgform textarea{min-height:84px;resize:vertical}
+.sgform .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sgform .send{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}
+.sgform .send:hover{background:var(--navy2)}
+.sgform .hint{font-size:11px;color:var(--mut);line-height:1.5}
+.sgform .err{color:var(--red);font-size:12px;font-weight:600;display:none}
 .ld{padding:30px;text-align:center;color:var(--mut)}
 .spin{display:inline-block;width:18px;height:18px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle;margin-right:8px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -143,6 +164,7 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
 </main>
 
 <div class="ovl" id="ovl"><div class="panel" id="panel"></div></div>
+<div id="ovl2"><div class="sgpanel" id="panel2"></div></div>
 
 <footer>
   Strumento di consultazione non ufficiale ad uso delle imprese — i dati provengono dai file XLSX pubblicati da Regione Lombardia (Prezzario 2026, LOM261, approvato con DGR XII/6071 del 27/04/2026).<br>
@@ -388,22 +410,23 @@ async function openVoce({p,v}){
   </div>`;
   if(det&&det.declx) h+=`<div class="sect"><h3>Lavorazione e specifiche tecniche</h3><div class="txt">${esc(det.declx)}</div></div>`;
   if(an){
-    h+=`<div class="sect"><h3>Analisi prezzi <small>scomposizione in risorse elementari</small></h3>
-    <table class="an"><thead><tr><th>Codice risorsa</th><th>Descrizione</th><th>U.M.</th><th class="num">Quantità</th><th class="num">Costo unit. €</th><th class="num">Costo €</th><th class="num">Inc. %</th></tr></thead><tbody>`;
+    h+=`<div class="sect"><h3>Analisi prezzi <small>scomposizione in risorse elementari</small> <button class="sgbtn" id="sgall">⚑ Segnala anomalia</button></h3>
+    <table class="an"><thead><tr><th>Codice risorsa</th><th>Descrizione</th><th>U.M.</th><th class="num">Quantità</th><th class="num">Costo unit. €</th><th class="num">Costo €</th><th class="num">Inc. %</th><th></th></tr></thead><tbody>`;
     let lastCat="";
     const tot=an.tot||v[3];
-    for(const r of an.ris){
-      if(r[0]!==lastCat){ h+=`<tr class="cat"><td colspan="7">Risorsa ${esc(r[0])}</td></tr>`; lastCat=r[0]; }
+    an.ris.forEach((r,ri)=>{
+      if(r[0]!==lastCat){ h+=`<tr class="cat"><td colspan="8">Risorsa ${esc(r[0])}</td></tr>`; lastCat=r[0]; }
       const inc=tot?100*r[6]/tot:null;
       const link = /^(RM|RU|RS|RP)\./.test(r[1]) ? `<a href="#" data-rcod="${esc(r[1])}">${esc(r[1])}</a>` : `<span style="font-family:Consolas,monospace;font-size:11px">${esc(r[1])}</span>`;
       h+=`<tr><td>${link}</td><td>${esc(r[2])}</td><td style="white-space:nowrap">${esc(r[3])}</td>
         <td class="num">${fmt(r[4],3)}</td><td class="num">${fmt(r[5])}</td><td class="num">${fmt(r[6])}</td>
-        <td class="num">${inc!=null?fmt(inc,1)+"%":"—"}</td></tr>`;
-    }
-    h+=`<tr class="foot"><td colspan="5">Sommano (A)</td><td class="num">${fmt(an.som)}</td><td></td></tr>
-        <tr class="foot"><td colspan="5">Spese generali (B)${an.som?` — ${fmt(100*an.sg/an.som,1)}%`:""}</td><td class="num">${fmt(an.sg)}</td><td></td></tr>
-        <tr class="foot"><td colspan="5">Utili di impresa (C)${an.som?` — ${fmt(100*an.ui/(an.som+an.sg),1)}%`:""}</td><td class="num">${fmt(an.ui)}</td><td></td></tr>
-        <tr class="tot"><td colspan="5">PREZZO TOTALE (A + B + C)</td><td class="num">${fmt(an.tot)}</td><td></td></tr>
+        <td class="num">${inc!=null?fmt(inc,1)+"%":"—"}</td>
+        <td><button class="flag" data-ri="${ri}" title="Segnala anomalia su questa risorsa">⚑</button></td></tr>`;
+    });
+    h+=`<tr class="foot"><td colspan="5">Sommano (A)</td><td class="num">${fmt(an.som)}</td><td></td><td></td></tr>
+        <tr class="foot"><td colspan="5">Spese generali (B)${an.som?` — ${fmt(100*an.sg/an.som,1)}%`:""}</td><td class="num">${fmt(an.sg)}</td><td></td><td></td></tr>
+        <tr class="foot"><td colspan="5">Utili di impresa (C)${an.som?` — ${fmt(100*an.ui/(an.som+an.sg),1)}%`:""}</td><td class="num">${fmt(an.ui)}</td><td></td><td></td></tr>
+        <tr class="tot"><td colspan="5">PREZZO TOTALE (A + B + C)</td><td class="num">${fmt(an.tot)}</td><td></td><td></td></tr>
     </tbody></table></div>`;
   }
   if(det){
@@ -436,10 +459,70 @@ async function openVoce({p,v}){
     const found=d.voci.find(x=>x[0]===cod);
     if(found) openVoce({p:"E",v:found});
   });
+  const sa=document.getElementById("sgall");
+  if(sa) sa.onclick=()=>openSegnala(v,null);
+  pan.querySelectorAll("button.flag").forEach(b=>b.onclick=()=>openSegnala(v,an.ris[+b.dataset.ri]));
 }
+/* ---------- segnalazione anomalie ---------- */
+const SEGNALA_EMAIL="poggi.ance@gmail.com";
+const SG_TIPI_RIS=["Descrizione della risorsa","Quantità impiegata","Costo unitario","Costi di ammortamento / esercizio","Risorsa non pertinente","Altro"];
+const SG_TIPI_GEN=["Risorsa mancante nell'analisi","Spese generali / Utili di impresa","Prezzo complessivo non congruo","Altro"];
+function openSegnala(v,ris){
+  const tipi=ris?SG_TIPI_RIS:SG_TIPI_GEN;
+  const o2=$("#ovl2"),p2=$("#panel2");
+  let h=`<div class="phead"><span style="font-weight:700">⚑ Segnalazione anomalia analisi prezzi</span><button class="x" id="sgx">×</button></div>
+  <form class="sgform" id="sgf">
+    <div class="ctx">Voce: <b>LOM261.${esc(v[0])}</b><br>${esc(v[1].slice(0,160))}${v[1].length>160?"…":""}
+    ${ris?`<br><br>Risorsa contestata: <b>${esc(ris[1])}</b> — ${esc(ris[2].slice(0,100))}<br>Quantità: ${fmt(ris[4],3)} · Costo unit.: ${fmt(ris[5])} € · Costo: ${fmt(ris[6])} €`:""}</div>
+    <div><label>Tipo di anomalia *</label><select id="sg-tipo">${tipi.map(t=>`<option>${t}</option>`).join("")}</select></div>
+    <div><label>Valore o risorsa proposta (facoltativo)</label><input id="sg-val" placeholder="${ris?"es. quantità corretta, costo di mercato…":"es. codice/descrizione della risorsa mancante…"}"></div>
+    <div><label>Motivazione *</label><textarea id="sg-mot" placeholder="Descrivere l'anomalia riscontrata e gli eventuali riferimenti (listini, esperienza di cantiere, offerte ricevute…)"></textarea><div class="err" id="sg-err">Indicare la motivazione della segnalazione.</div></div>
+    <div class="row2">
+      <div><label>Impresa (facoltativo)</label><input id="sg-imp" placeholder="Ragione sociale"></div>
+      <div><label>Email per ricontatto (facoltativo)</label><input id="sg-em" type="email" placeholder="nome@impresa.it"></div>
+    </div>
+    <button type="submit" class="send">Invia segnalazione via email</button>
+    <div class="hint">Si aprirà il programma di posta con il messaggio già compilato, indirizzato ad ANCE Piemonte Valle d'Aosta: basterà premere Invia. I dati restano sul vostro computer fino all'invio dell'email.</div>
+  </form>`;
+  p2.innerHTML=h;
+  o2.classList.add("show");
+  $("#sgx").onclick=closeSegnala;
+  $("#sgf").onsubmit=ev=>{
+    ev.preventDefault();
+    const mot=$("#sg-mot").value.trim();
+    if(!mot){ $("#sg-err").style.display="block"; $("#sg-mot").focus(); return; }
+    const L=[];
+    L.push("SEGNALAZIONE ANOMALIA - Prezzario Lombardia 2026 (LOM261)");
+    L.push("");
+    L.push("Voce: LOM261."+v[0]);
+    L.push("Denominazione: "+v[1].slice(0,180));
+    L.push("Prezzo: "+fmt(v[3])+" € / "+(v[2]||""));
+    if(ris){
+      L.push("");
+      L.push("Risorsa contestata: "+ris[1]);
+      L.push("Descrizione: "+ris[2].slice(0,120));
+      L.push("Quantita: "+fmt(ris[4],3)+" · Costo unitario: "+fmt(ris[5])+" € · Costo: "+fmt(ris[6])+" €");
+    }
+    L.push("");
+    L.push("Tipo di anomalia: "+$("#sg-tipo").value);
+    if($("#sg-val").value.trim()) L.push("Valore/risorsa proposta: "+$("#sg-val").value.trim());
+    L.push("Motivazione: "+mot);
+    L.push("");
+    if($("#sg-imp").value.trim()) L.push("Impresa: "+$("#sg-imp").value.trim());
+    if($("#sg-em").value.trim()) L.push("Email: "+$("#sg-em").value.trim());
+    L.push("");
+    L.push("Link alla voce: "+location.origin+location.pathname+"#v="+encodeURIComponent(v[0]));
+    const sub="Segnalazione anomalia analisi prezzi - LOM261."+v[0];
+    location.href="mailto:"+SEGNALA_EMAIL+"?subject="+encodeURIComponent(sub)+"&body="+encodeURIComponent(L.join("\n"));
+    closeSegnala();
+  };
+}
+function closeSegnala(){ $("#ovl2").classList.remove("show"); }
+$("#ovl2").addEventListener("click",e=>{ if(e.target.id==="ovl2") closeSegnala(); });
+
 function closeVoce(){ $("#ovl").classList.remove("show"); document.body.style.overflow=""; }
 $("#ovl").addEventListener("click",e=>{ if(e.target.id==="ovl") closeVoce(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeVoce(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("#ovl2").classList.contains("show")) closeSegnala(); else closeVoce(); } });
 
 /* ---------- export CSV ---------- */
 $("#csv").onclick=()=>{
@@ -466,7 +549,13 @@ function renderTabs(){
     b.onclick=async()=>{ S.part=p; S.path=null; S.sort=null; renderTabs(); showLoading(); await loadPart(p); renderTree(); applyFilter(); renderTabs(); };
     el.appendChild(b);
   }
+  setSticky();
 }
+function setSticky(){
+  const t=document.querySelector("nav.tabs");
+  document.documentElement.style.setProperty("--ttop",(t?t.offsetHeight:53)+"px");
+}
+window.addEventListener("resize",setSticky);
 let deb=null;
 $("#q").addEventListener("input",e=>{ S.q=e.target.value; clearTimeout(deb); deb=setTimeout(applyFilter,250); });
 $("#allparts").onchange=applyFilter;
@@ -476,7 +565,17 @@ $("#treset").onclick=()=>{ S.path=null; renderTree(); applyFilter(); };
 (async function init(){
   showLoading();
   await loadPart("A");
-  renderTabs(); renderTree(); applyFilter();
+  renderTabs(); setSticky(); renderTree(); applyFilter();
+  // deep-link #v=CODICE (usato nelle email di segnalazione)
+  const m=location.hash.match(/^#v=(.+)$/);
+  if(m){
+    const cod=decodeURIComponent(m[1]);
+    for(const p of ["A","C","E"]){
+      const d=await loadPart(p);
+      const found=d.voci.find(x=>x[0]===cod);
+      if(found){ openVoce({p,v:found}); break; }
+    }
+  }
   setTimeout(async()=>{ for(const p of ["C","E","F"]) { await loadPart(p); } renderTabs(); },800);
 })();
 </script>
