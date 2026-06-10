@@ -488,12 +488,19 @@ function openSegnala(v,ris){
     <div><label>Tipo di anomalia * — selezionare una o più caselle</label><div class="chks" id="sg-tipo">${tipi.map(t=>`<label class="chk"><input type="checkbox" value="${t}"> ${t}</label>`).join("")}</div><div class="err" id="sg-err0">Selezionare almeno un tipo di anomalia.</div></div>
     <div><label>Valore o risorsa proposta (facoltativo)</label><input id="sg-val" placeholder="${ris?"es. quantità corretta, costo di mercato…":"es. codice/descrizione della risorsa mancante…"}"></div>
     <div><label>Motivazione *</label><textarea id="sg-mot" placeholder="Descrivere l'anomalia riscontrata e gli eventuali riferimenti (listini, esperienza di cantiere, offerte ricevute…)"></textarea><div class="err" id="sg-err">Indicare la motivazione della segnalazione.</div></div>
+    <div><label>Documento giustificativo a supporto (facoltativo)</label><div class="chks" id="sg-doc">
+      <label class="chk"><input type="checkbox" value="Fattura"> Fattura</label>
+      <label class="chk"><input type="checkbox" value="Offerta / preventivo fornitore"> Offerta / preventivo</label>
+      <label class="chk"><input type="checkbox" value="Listino prezzi"> Listino prezzi</label>
+      <label class="chk"><input type="checkbox" value="DDT / bolla"> DDT / bolla</label>
+      <label class="chk"><input type="checkbox" value="Altro documento"> Altro documento</label>
+    </div></div>
     <div class="row2">
       <div><label>Impresa (facoltativo)</label><input id="sg-imp" placeholder="Ragione sociale"></div>
       <div><label>Email per ricontatto (facoltativo)</label><input id="sg-em" type="email" placeholder="nome@impresa.it"></div>
     </div>
     <button type="submit" class="send">Invia segnalazione via email</button>
-    <div class="hint">Si aprirà il programma di posta con il messaggio già compilato, indirizzato ad ANCE Piemonte Valle d'Aosta: basterà premere Invia. I dati restano sul vostro computer fino all'invio dell'email.</div>
+    <div class="hint">Si aprirà il programma di posta con il messaggio già compilato, indirizzato ad ANCE Piemonte Valle d'Aosta. <b>Se è stato indicato un giustificativo (es. fattura), allegarlo all'email prima di premere Invia</b> — per ragioni di sicurezza dei browser non è possibile allegarlo automaticamente. I dati restano sul vostro computer fino all'invio dell'email.</div>
   </form>`;
   p2.innerHTML=h;
   o2.classList.add("show");
@@ -522,6 +529,12 @@ function openSegnala(v,ris){
     if($("#sg-val").value.trim()) L.push("Valore/risorsa proposta: "+$("#sg-val").value.trim());
     L.push("Motivazione: "+mot);
     L.push("");
+    const docSel=[...document.querySelectorAll("#sg-doc input:checked")].map(c=>c.value);
+    if(docSel.length){
+      L.push("Giustificativi dichiarati: "+docSel.join("; "));
+      L.push(">>> IMPORTANTE: allegare a questa email i documenti indicati prima dell'invio. <<<");
+      L.push("");
+    }
     if($("#sg-imp").value.trim()) L.push("Impresa: "+$("#sg-imp").value.trim());
     if($("#sg-em").value.trim()) L.push("Email: "+$("#sg-em").value.trim());
     L.push("");
