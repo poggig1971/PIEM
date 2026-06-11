@@ -285,7 +285,7 @@ function buildPieIdx(d){
 function renderPieFilters(){
   const el=$("#piefilters");
   if(S.region!=="PIE"||!S.data.P){ el.style.display="none"; return; }
-  el.style.display="";
+  el.style.display="block";
   const d=S.data.P;
   const GRPS=[["LAV","Lavorazioni"],["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"]];
   let h='<div class="pf-lab">Gruppo</div><div class="pf-row">';
