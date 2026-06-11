@@ -165,7 +165,25 @@ label.chk input{width:auto;accent-color:var(--navy)}
 @keyframes sp{to{transform:rotate(360deg)}}
 footer{padding:16px 22px;font-size:11px;color:var(--mut);text-align:center;line-height:1.6}
 mark{background:#ffe89a;padding:0 1px;border-radius:2px}
-@media(max-width:860px){aside{display:none}main{display:block}}
+.pact{background:none;border:1px solid #5d75b5;color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.pact:hover{background:var(--navy2)}
+.favb{border:none;background:none;cursor:pointer;font-size:16px;color:#d8a800;padding:0 3px;line-height:1;vertical-align:middle}
+#mtoggle{display:none;position:fixed;bottom:18px;right:18px;z-index:170;background:var(--navy);color:#fff;border:none;border-radius:24px;padding:13px 22px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer}
+#sbk{position:fixed;inset:0;background:rgba(12,20,45,.4);z-index:150;display:none}
+#sbk.show{display:block}
+@media(max-width:860px){
+  main{display:block}
+  aside{display:none}
+  aside.open{display:block;position:fixed;top:0;left:0;bottom:0;z-index:160;width:85%;max-width:360px;max-height:100vh;box-shadow:4px 0 24px rgba(0,0,0,.3)}
+  #mtoggle{display:inline-block}
+}
+@media print{
+  body.printing>*:not(#ovl){display:none!important}
+  body.printing #ovl{display:block!important;position:static;padding:0;background:#fff;overflow:visible}
+  body.printing .panel{box-shadow:none;max-width:none;margin:0}
+  body.printing .phead{-webkit-print-color-adjust:exact;print-color-adjust:exact;border-radius:0}
+  body.printing .x,body.printing .flag,body.printing .sgbtn,body.printing .pact{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -191,6 +209,7 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
         <label id="lab-onlyan"><input type="checkbox" id="onlyan"> solo voci con analisi</label>
         <label><input type="checkbox" id="onlycam"> solo voci CAM</label>
         <label><input type="checkbox" id="onlysic"> solo costi sicurezza</label>
+        <label><input type="checkbox" id="onlyfav"> solo preferite ★</label>
       </div>
     </div>
     <div class="treetitle"><span>Sfoglia per categoria</span><button id="treset">azzera</button></div>
@@ -210,6 +229,8 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
 
 <div class="ovl" id="ovl"><div class="panel" id="panel"></div></div>
 <div id="ovl2"><div class="sgpanel" id="panel2"></div></div>
+<button id="mtoggle">☰ Filtri</button>
+<div id="sbk"></div>
 
 <footer>
   Strumento di consultazione non ufficiale ad uso delle imprese, realizzato da ANCE Piemonte Valle d'Aosta sui dati ufficiali pubblicati dalle Regioni.<br>
@@ -269,6 +290,14 @@ const curReg=()=>REGIONS[S.region];
 
 function djb2(s,n){let h=5381;for(let i=0;i<s.length;i++){h=(((h*33)>>>0)^s.charCodeAt(i))>>>0;}return h%n;}
 
+/* ---------- preferiti (memorizzati nel browser) ---------- */
+let favs=new Set();
+try{ favs=new Set(JSON.parse(localStorage.getItem("prezzari_fav")||"[]")); }catch(e){}
+function toggleFav(key){
+  if(favs.has(key)) favs.delete(key); else favs.add(key);
+  try{ localStorage.setItem("prezzari_fav",JSON.stringify([...favs])); }catch(e){}
+}
+
 async function loadPart(p){
   if(S.data[p]) return S.data[p];
   const r = await fetch(`data/voci_${p}.json`);
@@ -318,7 +347,7 @@ function renderPieSidebar(){
   const pc=document.getElementById("pclr");
   if(pc) pc.onclick=()=>{
     S.pieSez=null; S.pieFam=null; S.q=""; $("#q").value="";
-    $("#onlyan").checked=false; $("#onlycam").checked=false; $("#onlysic").checked=false; $("#onlypriced").checked=true;
+    $("#onlyan").checked=false; $("#onlycam").checked=false; $("#onlysic").checked=false; $("#onlyfav").checked=false; $("#onlypriced").checked=true;
     renderPieSidebar(); renderCapBar(); applyFilter();
   };
 }
@@ -434,6 +463,7 @@ async function applyFilter(){
   const onlyAn=$("#onlyan").checked;
   const onlyCam=$("#onlycam").checked;
   const onlySic=$("#onlysic").checked;
+  const onlyFav=$("#onlyfav").checked;
   const all=$("#allparts").checked && terms.length>0;
   let rows=[];
   const parts = all?curReg().parts:[curPart()];
@@ -443,6 +473,7 @@ async function applyFilter(){
     for(const v of d.voci){
       if(onlyP && !(v[3]>0)) continue;
       if(onlyAn && !hasAnalisi(p,v)) continue;
+      if(onlyFav && !favs.has(p+"|"+v[0])) continue;
       if(onlyCam && !(p==="P"?v[12]:v[11])) continue;
       if(onlySic && !(p==="P"?(v[0].startsWith("28.")||v[0].startsWith("PR280.")):v[9])) continue;
       if(p==="P"){
@@ -502,13 +533,19 @@ function renderList(){
       <td class="um">${esc(v[2]||"—")}</td>
       <td class="num">${v[3]>0?fmt(v[3]):"—"}</td>
       <td class="num">${ruB}</td>
-      <td style="white-space:nowrap">${hasAn?'<span class="badge b-blue">analisi</span>':""}${(p==="P"?v[12]:v[11])?' <span class="badge b-green">CAM</span>':""}${(p!=="P"&&v[9])?' <span class="badge b-amber">SIC</span>':""}</td>
+      <td style="white-space:nowrap"><button class="favb" data-c="${p}|${esc(v[0])}" title="Aggiungi/rimuovi dalle preferite">${favs.has(p+"|"+v[0])?"★":"☆"}</button>${hasAn?'<span class="badge b-blue">analisi</span>':""}${(p==="P"?v[12]:v[11])?' <span class="badge b-green">CAM</span>':""}${(p!=="P"&&v[9])?' <span class="badge b-amber">SIC</span>':""}</td>
     </tr>`;
   }
   h+="</tbody></table>";
   if(upto<rows.length) h+=`<button class="more" id="more">Mostra altre ${Math.min(S.PAGE,rows.length-upto).toLocaleString("it-IT")} voci (${(rows.length-upto).toLocaleString("it-IT")} rimanenti)</button>`;
   el.innerHTML=h;
   el.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>openVoce(rows[+tr.dataset.i]));
+  el.querySelectorAll(".favb").forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation();
+    toggleFav(b.dataset.c);
+    b.textContent=favs.has(b.dataset.c)?"★":"☆";
+    if($("#onlyfav").checked) applyFilter();
+  });
   el.querySelectorAll("thead th[data-c]").forEach(th=>th.onclick=()=>{
     const c=th.dataset.c;
     S.sort = (S.sort&&S.sort.col===c)?{col:c,dir:-S.sort.dir}:{col:c,dir:c==="cod"?1:-1};
@@ -556,10 +593,16 @@ async function openVoce({p,v}){
   let det=null;
   try{ det=await getDetail(p,v[0]); }catch(e){}
   const an=det&&det.an;
+  const fk=p+"|"+v[0];
   let h=`<div class="phead">
     <span class="cod">${esc(reg.pfx)}${esc(v[0])}</span>
     <span style="font-size:12px;opacity:.8;align-self:center">${esc(reg.nome)} 2026</span>
-    <button class="x" id="pclose">×</button>
+    <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
+      <button class="pact" id="pfav">${favs.has(fk)?"★ Preferita":"☆ Preferita"}</button>
+      <button class="pact" id="pprint">Stampa / PDF</button>
+      <button class="pact" id="plink">Copia link</button>
+      <button class="x" id="pclose" style="margin-left:4px">×</button>
+    </span>
   </div><div class="pbody">
   <div class="ptitle">${esc(v[1])}</div>
   <div class="kpis">
@@ -619,6 +662,17 @@ async function openVoce({p,v}){
   h+=`</div>`;
   pan.innerHTML=h;
   const pc=document.getElementById("pclose"); if(pc) pc.onclick=closeVoce;
+  const pf=document.getElementById("pfav");
+  if(pf) pf.onclick=()=>{ toggleFav(fk); pf.textContent=favs.has(fk)?"★ Preferita":"☆ Preferita"; };
+  const pp=document.getElementById("pprint");
+  if(pp) pp.onclick=()=>{ document.body.classList.add("printing"); setTimeout(()=>window.print(),50); };
+  const pl=document.getElementById("plink");
+  if(pl) pl.onclick=async()=>{
+    const url=location.origin+location.pathname+"#v="+encodeURIComponent(v[0]);
+    try{ await navigator.clipboard.writeText(url); pl.textContent="✓ Copiato"; }
+    catch(e){ prompt("Copia il link:",url); }
+    setTimeout(()=>{ pl.textContent="Copia link"; },1600);
+  };
   pan.querySelectorAll("a[data-rcod]").forEach(a=>a.onclick=async ev=>{
     ev.preventDefault();
     const cod=a.dataset.rcod;
@@ -638,7 +692,8 @@ $("#ovl").addEventListener("click",e=>{ if(e.target.id==="ovl") closeVoce(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("#ovl2").classList.contains("show")) closeSegnala(); else closeVoce(); } });
 
 /* ---------- segnalazione anomalie ---------- */
-const SEGNALA_EMAIL="poggi.ance@gmail.com";
+// Indirizzi provvisori per le segnalazioni (da sostituire al go-live)
+const SEGNALA_EMAIL={PIE:"poggi.ance@gmail.com",LOM:"poggig@yahoo.com"};
 const SG_TIPI_RIS=["Descrizione della risorsa","Quantità impiegata","Costo unitario","Costi di ammortamento / esercizio","Risorsa non pertinente","Altro"];
 const SG_TIPI_GEN=["Risorsa mancante nell'analisi","Spese generali / Utili di impresa","Prezzo complessivo non congruo","Altro"];
 function openSegnala(p,v,ris){
@@ -704,7 +759,7 @@ function openSegnala(p,v,ris){
     L.push("");
     L.push("Link alla voce: "+location.origin+location.pathname+"#v="+encodeURIComponent(v[0]));
     const sub="Segnalazione anomalia analisi prezzi - "+reg.pfx+v[0];
-    location.href="mailto:"+SEGNALA_EMAIL+"?subject="+encodeURIComponent(sub)+"&body="+encodeURIComponent(L.join("\n"));
+    location.href="mailto:"+SEGNALA_EMAIL[REGOF[p]]+"?subject="+encodeURIComponent(sub)+"&body="+encodeURIComponent(L.join("\n"));
     closeSegnala();
   };
 }
@@ -774,6 +829,14 @@ function setSticky(){
   document.documentElement.style.setProperty("--ttop",(t?t.offsetHeight:53)+"px");
 }
 window.addEventListener("resize",setSticky);
+window.addEventListener("afterprint",()=>document.body.classList.remove("printing"));
+$("#mtoggle").onclick=()=>{
+  const a=document.querySelector("aside");
+  const open=a.classList.toggle("open");
+  $("#sbk").classList.toggle("show",open);
+};
+$("#sbk").onclick=()=>{ document.querySelector("aside").classList.remove("open"); $("#sbk").classList.remove("show"); };
+$("#onlyfav").onchange=applyFilter;
 let deb=null;
 $("#q").addEventListener("input",e=>{ S.q=e.target.value; clearTimeout(deb); deb=setTimeout(applyFilter,250); });
 $("#allparts").onchange=applyFilter;
@@ -806,5 +869,6 @@ $("#treset").onclick=()=>{ S.path=null; renderTree(); applyFilter(); };
   setTimeout(async()=>{ for(const p of ["A","C","E","F"]) { await loadPart(p); } renderTabs(); },800);
 })();
 </script>
+<script data-goatcounter="https://ance-prezzari.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>
