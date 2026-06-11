@@ -35,7 +35,7 @@ old_by_new = {}
 for r in rows:
     c25 = str(r[0] or "").replace("\x00", "").strip()
     c26 = str(r[2] or "").replace("\x00", "").strip() if len(r) > 2 else ""
-    if re.match(r"^\d{2}\.", c25) and re.match(r"^\d{2}\.", c26):
+    if re.match(r"^\d{2}\.", c25) and re.match(r"^([A-Z]{2}\w*|\d{2})\.", c26):
         old_by_new.setdefault(c26, []).append(c25)
 print("transcodifica: mappature", sum(len(v) for v in old_by_new.values()), "su", len(old_by_new), "codici 2026")
 
