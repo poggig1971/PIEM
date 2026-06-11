@@ -61,6 +61,18 @@ section.content{flex:1;padding:16px 22px;min-width:0}
 .bar .res{font-size:13px;color:var(--mut)}
 .bar .exp{margin-left:auto;border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer}
 .bar .exp:hover{background:#eef2fb}
+#piefilters{margin-bottom:12px;display:none}
+#piefilters .pf-lab{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:10px 0 6px}
+#piefilters .pf-row{display:flex;gap:6px;flex-wrap:wrap}
+.pfg{border:1px solid var(--border);background:#fff;border-radius:18px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer}
+.pfg.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+.pfc{border:1px solid var(--border);background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;color:var(--txt);cursor:pointer;line-height:1.4;text-align:left}
+.pfc b{font-family:Consolas,monospace;color:var(--blue);font-weight:700;margin-right:5px}
+.pfc.com b{color:#b35c00}
+.pfc .n{color:var(--mut);font-size:10px;margin-left:5px}
+.pfc.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+.pfc.sel b,.pfc.sel .n{color:#cfd9f3}
+.pfc:hover{border-color:var(--blue)}
 table.lst{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(21,41,94,.08)}
 table.lst thead th{background:var(--navy);color:#fff;text-align:left;font-size:12px;padding:10px 12px;position:sticky;top:var(--ttop);cursor:pointer;user-select:none;white-space:nowrap;z-index:20}
 table.lst thead th:first-child{border-top-left-radius:10px}
@@ -171,6 +183,7 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
   </aside>
 
   <section class="content">
+    <div id="piefilters"></div>
     <div class="crumb" id="crumb"></div>
     <div class="bar">
       <span class="res" id="rescount"></span>
@@ -204,7 +217,7 @@ const REGIONS = {
   },
   PIE:{
     nome:"Piemonte",
-    titolo:"Prezzario Regione Piemonte — edizione 2026",
+    titolo:"Prezzario Regionale Piemonte — edizione 2026",
     fonte:'D.G.R. 9 giugno 2026, n. 12-2656 · B.U. Regione Piemonte n. 23 S.s. n. 2 dell\'11 giugno 2026 · <a href="https://prezzario.regione.piemonte.it/2026" target="_blank" rel="noopener">Fonte ufficiale ↗</a>',
     pfx:"PIE26_",
     parts:["P"],
@@ -229,7 +242,7 @@ const PARTS = {
 };
 const SHARDS = {A:24,C:48,E:48,P:96};
 const REGOF = {A:"LOM",C:"LOM",E:"LOM",F:"LOM",P:"PIE"};
-const S = {region:"LOM", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null};
+const S = {region:"LOM", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null};
 
 const $=s=>document.querySelector(s);
 const fmt=(n,d=2)=>n==null?"—":n.toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -247,8 +260,61 @@ async function loadPart(p){
   const d = await r.json();
   if(p==="F"){ d.tree = buildTreeF(d.voci); }
   else { d.tree = buildTree(d.paths, d.voci); }
+  if(p==="P") buildPieIdx(d);
   S.data[p]=d;
   return d;
+}
+function pieGrpOf(s){ if(/^AT/.test(s)) return "AT"; if(/^PR/.test(s)) return "PR"; if(/^RU/.test(s)) return "RU"; return "LAV"; }
+function buildPieIdx(d){
+  if(d.sez) return;
+  const sez={}, fam={};
+  d.voci.forEach(v=>{
+    const seg=v[0].split(".");
+    const s=seg[0], f=seg[1]||"";
+    const path=d.paths[v[6]].split("|");
+    if(!sez[s]) sez[s]={nome:path[0],grp:pieGrpOf(s),n:0};
+    sez[s].n++;
+    if(!fam[s]) fam[s]={};
+    if(!fam[s][f]) fam[s][f]={nome:path[1]||"",n:0};
+    fam[s][f].n++;
+  });
+  d.sez=sez; d.fam=fam;
+}
+function renderPieFilters(){
+  const el=$("#piefilters");
+  if(S.region!=="PIE"||!S.data.P){ el.style.display="none"; return; }
+  el.style.display="";
+  const d=S.data.P;
+  const GRPS=[["LAV","Lavorazioni"],["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"]];
+  let h='<div class="pf-lab">Gruppo</div><div class="pf-row">';
+  for(const [g,lab] of GRPS){
+    const ns=Object.values(d.sez).filter(x=>x.grp===g).length;
+    h+=`<button class="pfg${S.pieGrp===g?" sel":""}" data-g="${g}">${lab} <span style="opacity:.65;font-size:11px">${ns}</span></button>`;
+  }
+  h+='</div><div class="pf-lab">Tipologia (sezione)</div><div class="pf-row">';
+  for(const s of Object.keys(d.sez).filter(x=>d.sez[x].grp===S.pieGrp).sort()){
+    const x=d.sez[s];
+    const nm=x.nome.length>44?x.nome.slice(0,44)+"…":x.nome;
+    h+=`<button class="pfc${s===S.pieSez?" sel":""}${s.includes("COM")?" com":""}" data-s="${s}" title="${esc(x.nome)}"><b>${esc(s)}</b>${esc(nm)}<span class="n">${x.n.toLocaleString("it-IT")}</span></button>`;
+  }
+  h+='</div>';
+  if(S.pieSez&&d.fam[S.pieSez]){
+    const fams=Object.keys(d.fam[S.pieSez]).sort();
+    if(fams.length>1){
+      h+=`<div class="pf-lab">Famiglia — capitoli di ${esc(S.pieSez)} · ${esc(d.sez[S.pieSez].nome.slice(0,44))}</div><div class="pf-row">`;
+      for(const f of fams){
+        const x=d.fam[S.pieSez][f];
+        let nm=x.nome?x.nome.charAt(0)+x.nome.slice(1).toLowerCase():f;
+        if(nm.length>44) nm=nm.slice(0,44)+"…";
+        h+=`<button class="pfc${f===S.pieFam?" sel":""}" data-f="${f}" title="${esc(x.nome)}"><b>${esc(f)}</b>${esc(nm)}<span class="n">${x.n.toLocaleString("it-IT")}</span></button>`;
+      }
+      h+='</div>';
+    }
+  }
+  el.innerHTML=h;
+  el.querySelectorAll(".pfg").forEach(b=>b.onclick=()=>{ S.pieGrp=b.dataset.g; S.pieSez=null; S.pieFam=null; renderPieFilters(); applyFilter(); });
+  el.querySelectorAll(".pfc[data-s]").forEach(b=>b.onclick=()=>{ S.pieSez=(S.pieSez===b.dataset.s)?null:b.dataset.s; S.pieFam=null; renderPieFilters(); applyFilter(); });
+  el.querySelectorAll(".pfc[data-f]").forEach(b=>b.onclick=()=>{ S.pieFam=(S.pieFam===b.dataset.f)?null:b.dataset.f; renderPieFilters(); applyFilter(); });
 }
 
 /* ---------- albero ---------- */
@@ -350,7 +416,11 @@ async function applyFilter(){
     for(const v of d.voci){
       if(onlyP && !(v[3]>0)) continue;
       if(onlyAn && !hasAnalisi(p,v)) continue;
-      if(!all && S.path){
+      if(p==="P"){
+        if(S.pieSez && !(v[0]===S.pieSez||v[0].startsWith(S.pieSez+"."))) continue;
+        if(S.pieFam && !v[0].startsWith(S.pieSez+"."+S.pieFam+".")) continue;
+      }
+      if(!all && S.path && p!=="P"){
         if(isF){ if(!(v[0]===S.path||v[0].startsWith(S.path+"."))) continue; }
         else { const pth=d.paths[v[6]]; if(!(pth===S.path||pth.startsWith(S.path+"|"))) continue; }
       }
@@ -420,9 +490,14 @@ function renderList(){
 function crumb(){
   const el=$("#crumb");
   let h=`<b>${curReg().nome} · ${PARTS[curPart()]?PARTS[curPart()].label:""}</b>`;
-  if(S.path) h+=` › ${esc(S.path.split("|").join(" › "))} <button id="cclr">× rimuovi filtro categoria</button>`;
+  if(S.region==="PIE"&&S.pieSez&&S.data.P){
+    h+=` › ${esc(S.pieSez)} ${esc(S.data.P.sez[S.pieSez].nome.slice(0,50))}`;
+    if(S.pieFam&&S.data.P.fam[S.pieSez][S.pieFam]) h+=` › ${esc(S.pieFam)} ${esc(S.data.P.fam[S.pieSez][S.pieFam].nome.slice(0,40))}`;
+    h+=` <button id="cclr">× rimuovi filtri</button>`;
+  }
+  else if(S.path) h+=` › ${esc(S.path.split("|").join(" › "))} <button id="cclr">× rimuovi filtro categoria</button>`;
   el.innerHTML=h;
-  const b=$("#cclr"); if(b) b.onclick=()=>{S.path=null;document.querySelectorAll(".tnode.sel").forEach(x=>x.classList.remove("sel"));applyFilter();};
+  const b=$("#cclr"); if(b) b.onclick=()=>{S.path=null;S.pieSez=null;S.pieFam=null;document.querySelectorAll(".tnode.sel").forEach(x=>x.classList.remove("sel"));renderPieFilters();applyFilter();};
 }
 function showLoading(){ $("#results").innerHTML=`<div class="ld"><span class="spin"></span>Caricamento dati…</div>`; }
 function renderRaffronto(){
@@ -660,6 +735,10 @@ function renderTabs(){
   }
   $("#lab-allparts").style.display = reg.parts.length>1 ? "" : "none";
   $("#lab-onlyan").style.display = (S.region==="PIE") ? "" : "none";
+  const isPie = S.region==="PIE";
+  document.querySelector(".treetitle").style.display = isPie ? "none" : "";
+  $("#tree").style.display = isPie ? "none" : "";
+  renderPieFilters();
   setSticky();
 }
 function setSticky(){
