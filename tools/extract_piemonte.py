@@ -84,6 +84,7 @@ for r in rows[1:]:
         None, None, None,   # niente elevata/modesta/sicurezza per PIE
         "",
         1 if cod in has_an else 0,
+        1 if str(r[1] or "").strip() else 0,
     ])
     listino_prezzi[cod] = (psg, prezzo)
     d = {
@@ -160,4 +161,8 @@ for cod, det in details.items():
         det["an"] = an
         matched += 1
     key = f"p{djb2(cod, NSHARD):02d}"
-    shards.s
+    shards.setdefault(key, {})[cod] = det
+for key, data in shards.items():
+    with open(os.path.join(OUT, "det", key + ".json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+print(f"shard: {len(shards)} | voci con analisi: {matched} | DONE PIEMONTE")

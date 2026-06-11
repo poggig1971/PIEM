@@ -94,6 +94,7 @@ for part, path in FILES.items():
             path_idx[key],
             elev.get(cod), mode.get(cod), sic.get(cod),
             clean(r[66]),
+            1 if str(r[51] or "").strip() == "SI" else 0,
         ])
         details[cod] = {
             "declx": decl_rest,

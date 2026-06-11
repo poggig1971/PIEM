@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Navigatore Prezzari Regionali — Lombardia · Piemonte</title>
+<title>Navigatore Prezzari Regionali — Piemonte · Lombardia</title>
 <style>
 :root{
   --navy:#15295e; --navy2:#1d3a8f; --blue:#2553c7; --bg:#f4f6fb; --card:#fff;
@@ -176,6 +176,8 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
         <label id="lab-allparts"><input type="checkbox" id="allparts"> cerca in tutte le parti</label>
         <label><input type="checkbox" id="onlypriced" checked> solo voci con prezzo</label>
         <label id="lab-onlyan"><input type="checkbox" id="onlyan"> solo voci con analisi</label>
+        <label><input type="checkbox" id="onlycam"> solo voci CAM</label>
+        <label><input type="checkbox" id="onlysic"> solo costi sicurezza</label>
       </div>
     </div>
     <div class="treetitle"><span>Sfoglia per categoria</span><button id="treset">azzera</button></div>
@@ -198,23 +200,13 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
 
 <footer>
   Strumento di consultazione non ufficiale ad uso delle imprese, realizzato da ANCE Piemonte Valle d'Aosta sui dati ufficiali pubblicati dalle Regioni.<br>
-  Lombardia: Prezzario 2026 (LOM261), DGR XII/6071 del 27/04/2026 — fa fede la pubblicazione di Regione Lombardia. Piemonte: Prezzario 2026, D.G.R. 12-2656 del 09/06/2026 — fa fede la pubblicazione di Regione Piemonte.<br>
-  Prezzi in euro, IVA esclusa. Inc. manodopera: Lombardia = incidenza % sul prezzo; Piemonte = incidenza % sull'importo al netto di S.G. e U.I. (come pubblicato dalle rispettive Regioni).
+  Piemonte: Prezzario 2026, D.G.R. 12-2656 del 09/06/2026 — fa fede la pubblicazione di Regione Piemonte. Lombardia: Prezzario 2026 (LOM261), DGR XII/6071 del 27/04/2026 — fa fede la pubblicazione di Regione Lombardia.<br>
+  Prezzi in euro, IVA esclusa. Inc. manodopera: Piemonte = incidenza % sull'importo al netto di S.G. e U.I.; Lombardia = incidenza % sul prezzo (come pubblicato dalle rispettive Regioni).
 </footer>
 
 <script>
 "use strict";
 const REGIONS = {
-  LOM:{
-    nome:"Lombardia",
-    titolo:"Prezzario Regionale Lombardia — edizione 2026",
-    fonte:'Fonte: Regione Lombardia, DGR XII/6071 del 27/04/2026 · codifica LOM261 · art. 41 D.Lgs. 36/2023 · <a href="https://www.prezzario.regione.lombardia.it/prezzario/public/ricerca-stampa" target="_blank" rel="noopener">Fonte ufficiale ↗</a>',
-    pfx:"LOM261.",
-    parts:["A","C","E","F"],
-    racc:"Codice RL 2023 (raccordo)",
-    rlink:/^(RM|RU|RS|RP)\./,
-    stats:[["Opere compiute","19.452"],["Risorse elementari","20.420"],["Analisi prezzi","19.452"]],
-  },
   PIE:{
     nome:"Piemonte",
     titolo:"Prezzario Regionale Piemonte — edizione 2026",
@@ -225,9 +217,19 @@ const REGIONS = {
     rlink:/^[A-Z]{2}\d{2}\./,
     stats:[["Voci di listino","45.252"],["Analisi prezzi","11.359"],["Sezioni","32"]],
   },
+  LOM:{
+    nome:"Lombardia",
+    titolo:"Prezzario Regionale Lombardia — edizione 2026",
+    fonte:'Fonte: Regione Lombardia, DGR XII/6071 del 27/04/2026 · codifica LOM261 · art. 41 D.Lgs. 36/2023 · <a href="https://www.prezzario.regione.lombardia.it/prezzario/public/ricerca-stampa" target="_blank" rel="noopener">Fonte ufficiale ↗</a>',
+    pfx:"LOM261.",
+    parts:["A","C","E","F"],
+    racc:"Codice RL 2023 (raccordo)",
+    rlink:/^(RM|RU|RS|RP)\./,
+    stats:[["Opere compiute","19.452"],["Risorse elementari","20.420"],["Analisi prezzi","19.452"]],
+  },
   RAF:{
     nome:"Raffronto",
-    titolo:"Raffronto Lombardia · Piemonte",
+    titolo:"Raffronto Piemonte · Lombardia",
     fonte:"Confronto tra prezzi e analisi dei due prezzari regionali",
     parts:[],
     stats:[],
@@ -242,7 +244,7 @@ const PARTS = {
 };
 const SHARDS = {A:24,C:48,E:48,P:96};
 const REGOF = {A:"LOM",C:"LOM",E:"LOM",F:"LOM",P:"PIE"};
-const S = {region:"LOM", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null};
+const S = {region:"PIE", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null};
 
 const $=s=>document.querySelector(s);
 const fmt=(n,d=2)=>n==null?"—":n.toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -407,6 +409,8 @@ async function applyFilter(){
   const terms=qn.split(/\s+/).filter(t=>t.length>1);
   const onlyP=$("#onlypriced").checked;
   const onlyAn=$("#onlyan").checked;
+  const onlyCam=$("#onlycam").checked;
+  const onlySic=$("#onlysic").checked;
   const all=$("#allparts").checked && terms.length>0;
   let rows=[];
   const parts = all?curReg().parts:[curPart()];
@@ -416,6 +420,8 @@ async function applyFilter(){
     for(const v of d.voci){
       if(onlyP && !(v[3]>0)) continue;
       if(onlyAn && !hasAnalisi(p,v)) continue;
+      if(onlyCam && !(p==="P"?v[12]:v[11])) continue;
+      if(onlySic && !(p==="P"?(v[0].startsWith("28.")||v[0].startsWith("PR280.")):v[9])) continue;
       if(p==="P"){
         if(S.pieSez && !(v[0]===S.pieSez||v[0].startsWith(S.pieSez+"."))) continue;
         if(S.pieFam && !v[0].startsWith(S.pieSez+"."+S.pieFam+".")) continue;
@@ -473,7 +479,7 @@ function renderList(){
       <td class="um">${esc(v[2]||"—")}</td>
       <td class="num">${v[3]>0?fmt(v[3]):"—"}</td>
       <td class="num">${ruB}</td>
-      <td>${hasAn?'<span class="badge b-blue">analisi</span>':""}</td>
+      <td style="white-space:nowrap">${hasAn?'<span class="badge b-blue">analisi</span>':""}${(p==="P"?v[12]:v[11])?' <span class="badge b-green">CAM</span>':""}${(p!=="P"&&v[9])?' <span class="badge b-amber">SIC</span>':""}</td>
     </tr>`;
   }
   h+="</tbody></table>";
@@ -502,9 +508,9 @@ function crumb(){
 function showLoading(){ $("#results").innerHTML=`<div class="ld"><span class="spin"></span>Caricamento dati…</div>`; }
 function renderRaffronto(){
   $("#rescount").textContent="";
-  $("#crumb").innerHTML=`<b>Raffronto Lombardia · Piemonte</b>`;
+  $("#crumb").innerHTML=`<b>Raffronto Piemonte · Lombardia</b>`;
   $("#results").innerHTML=`<div class="soonbox"><b>Scheda di raffronto in preparazione.</b><br>
-  Confronto tra prezzi e analisi delle voci corrispondenti dei prezzari Lombardia e Piemonte 2026:<br>
+  Confronto tra prezzi e analisi delle voci corrispondenti dei prezzari Piemonte e Lombardia 2026:<br>
   correlazione tra le voci, scostamenti di prezzo, differenze nelle risorse e nei costi elementari.</div>`;
 }
 
@@ -751,18 +757,20 @@ $("#q").addEventListener("input",e=>{ S.q=e.target.value; clearTimeout(deb); deb
 $("#allparts").onchange=applyFilter;
 $("#onlypriced").onchange=applyFilter;
 $("#onlyan").onchange=applyFilter;
+$("#onlycam").onchange=applyFilter;
+$("#onlysic").onchange=applyFilter;
 $("#treset").onclick=()=>{ S.path=null; renderTree(); applyFilter(); };
 
 (async function init(){
   renderRegions(); renderHeader(); renderTabs();
   showLoading();
-  await loadPart("A");
+  await loadPart("P");
   renderTabs(); renderTree(); applyFilter();
   // deep-link #v=CODICE (usato nelle email di segnalazione)
   const m=location.hash.match(/^#v=(.+)$/);
   if(m){
     const cod=decodeURIComponent(m[1]);
-    for(const p of ["A","C","E","P"]){
+    for(const p of ["P","A","C","E"]){
       const d=await loadPart(p);
       const found=d.voci.find(x=>x[0]===cod);
       if(found){
@@ -773,7 +781,7 @@ $("#treset").onclick=()=>{ S.path=null; renderTree(); applyFilter(); };
       }
     }
   }
-  setTimeout(async()=>{ for(const p of ["C","E","F"]) { await loadPart(p); } renderTabs(); },800);
+  setTimeout(async()=>{ for(const p of ["A","C","E","F"]) { await loadPart(p); } renderTabs(); },800);
 })();
 </script>
 </body>
