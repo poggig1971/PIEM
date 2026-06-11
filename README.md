@@ -1,8 +1,10 @@
-# Navigatore Prezzario Regionale Lombardia — edizione 2026
+# Navigatore Prezzari Regionali — Lombardia · Piemonte (edizione 2026)
 
-Dashboard web per la consultazione del Prezzario Regionale dei lavori pubblici della Lombardia, edizione 2026 (codifica LOM261), approvato con DGR XII/6071 del 27 aprile 2026.
+Dashboard web per la consultazione dei prezzari regionali dei lavori pubblici, realizzata da ANCE Piemonte Valle d'Aosta. Sezione Lombardia: Prezzario 2026 (codifica LOM261), approvato con DGR XII/6071 del 27 aprile 2026, fonte https://www.prezzario.regione.lombardia.it/prezzario/public/ricerca-stampa. Sezione Piemonte: Prezzario 2026, approvato con D.G.R. 9 giugno 2026, n. 12-2656, pubblicato sul B.U. Regione Piemonte n. 23 S.s. n. 2 dell'11 giugno 2026, fonte https://prezzario.regione.piemonte.it/2026 (45.252 voci di listino, 11.359 analisi prezzi, transcodifica dei codici 2025). È prevista una terza sezione di raffronto tra i due prezzari.
 
-Strumento di consultazione non ufficiale ad uso delle imprese. Fa fede esclusivamente la pubblicazione ufficiale di Regione Lombardia.
+Le imprese possono segnalare anomalie sulle analisi prezzi (per singola risorsa o sull'intera analisi) tramite modulo guidato con invio per email, con indicazione dei giustificativi a supporto.
+
+Strumento di consultazione non ufficiale ad uso delle imprese. Fanno fede esclusivamente le pubblicazioni ufficiali delle Regioni.
 
 ## Contenuti
 
