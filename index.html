@@ -731,7 +731,9 @@ async function updateRaf(){
     const ds=dest[s];
     if(ds&&!ds[s]){
       const top=Object.entries(ds).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
-      nome+=" → 2026: "+top.join(", ");
+      const arrow=" → 2026: "+top.join(", ");
+      if(nome.length+arrow.length>40) nome=nome.slice(0,40-arrow.length).trim()+"…";
+      nome+=arrow;
     }
     h+=rowH(s, nome, stats[s], false);
   }
