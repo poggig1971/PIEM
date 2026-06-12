@@ -13,20 +13,20 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
-header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.logo{background:#fff;border-radius:8px;padding:5px 12px;display:flex;align-items:center;gap:10px}
-.logo img{height:48px;display:block}
+header{background:var(--navy);color:#fff;padding:7px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{background:#fff;border-radius:8px;padding:3px 10px;display:flex;align-items:center;gap:8px}
+.logo img{height:32px;display:block}
 .logo .a{font-weight:800;font-size:24px;color:var(--navy);letter-spacing:.5px;font-family:Arial,'Segoe UI',sans-serif}
 .logo .bar{width:3px;height:34px;background:var(--navy);flex-shrink:0}
 .logo .t{font-size:11px;font-weight:600;color:#76808f;line-height:1.3;letter-spacing:.6px;text-transform:uppercase}
-h1{font-size:20px;font-weight:700}
+h1{font-size:17px;font-weight:700}
 .sub{font-size:12px;opacity:.85;margin-top:2px}
 .sub a{color:#aac4ff;text-decoration:none;font-weight:600}
 .sub a:hover{text-decoration:underline}
 .hstats{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-.hstat{background:var(--navy2);border:1px solid #3b5bb3;border-radius:8px;padding:6px 14px;text-align:center;min-width:104px}
+.hstat{background:var(--navy2);border:1px solid #3b5bb3;border-radius:8px;padding:3px 10px;text-align:center;min-width:88px}
 .hstat .k{font-size:9px;letter-spacing:.8px;text-transform:uppercase;opacity:.75}
-.hstat .v{font-size:15px;font-weight:700;margin-top:2px}
+.hstat .v{font-size:13px;font-weight:700;margin-top:1px}
 nav.regions{display:flex;gap:8px;padding:10px 22px 0;background:#fff;flex-wrap:wrap}
 .reg{border:2px solid var(--navy);background:#fff;border-radius:10px 10px 0 0;padding:9px 22px;cursor:pointer;font-size:14px;font-weight:700;color:var(--navy);border-bottom:none}
 .reg.active{background:var(--navy);color:#fff}
@@ -227,6 +227,7 @@ mark{background:#ffe89a;padding:0 1px;border-radius:2px}
         <label id="lab-allparts"><input type="checkbox" id="allparts"> cerca in tutte le parti</label>
         <label><input type="checkbox" id="onlypriced" checked> solo voci con prezzo</label>
         <label id="lab-onlyan"><input type="checkbox" id="onlyan"> solo voci con analisi</label>
+        <label id="lab-lom" title="Solo voci con lavorazione equivalente individuata nel Prezzario Lombardia (coppie con prezzi coerenti)"><input type="checkbox" id="onlylom"> con equivalente Lombardia</label>
         <label><input type="checkbox" id="onlycam"> solo voci CAM</label>
         <label><input type="checkbox" id="onlysic"> solo costi sicurezza</label>
         <label><input type="checkbox" id="onlyfav"> solo preferite ★</label>
@@ -523,6 +524,8 @@ async function applyFilter(){
   const onlyCam=$("#onlycam").checked;
   const onlySic=$("#onlysic").checked;
   const onlyFav=$("#onlyfav").checked;
+  const onlyLom=$("#onlylom").checked && S.region==="PIE";
+  if(S.region==="PIE") await loadPieLav();
   const all=$("#allparts").checked && terms.length>0;
   let anHits=null;
   if($("#inan").checked && terms.length>0){
@@ -538,6 +541,7 @@ async function applyFilter(){
       if(onlyAn && !hasAnalisi(p,v)) continue;
       if(onlyFav && !favs.has(p+"|"+v[0])) continue;
       if(onlyCam && !(p==="P"?v[12]:v[11])) continue;
+      if(onlyLom && !(p==="P"&&PIELAV&&PIELAV[v[0]])) continue;
       if(onlySic && !(p==="P"?(v[0].startsWith("28.")||v[0].startsWith("PR280.")):v[9])) continue;
       if(p==="P"){
         if(S.pieSez && !(v[0]===S.pieSez||v[0].startsWith(S.pieSez+"."))) continue;
@@ -574,6 +578,13 @@ async function applyFilter(){
   S.page=0;
   renderList();
 }
+function lomBadge(p,v){
+  if(p!=="P"||!PIELAV||!PIELAV[v[0]]) return "";
+  const b=PIELAV[v[0]][3];
+  const cls=b==="A"?"b-green":b==="M"?"b-amber":"b-blue";
+  const lab=({A:"alta",M:"media",B:"bassa",MB:"molto bassa"})[b]||b;
+  return ` <span class="badge ${cls}" title="Lavorazione equivalente Lombardia individuata — affidabilità ${lab}">↔ LOM</span>`;
+}
 function renderList(){
   const el=$("#results");
   const rows=S.list;
@@ -599,7 +610,7 @@ function renderList(){
       <td class="um">${esc(v[2]||"—")}</td>
       <td class="num">${v[3]>0?fmt(v[3]):"—"}</td>
       <td class="num">${ruB}</td>
-      <td style="white-space:nowrap"><button class="favb" data-c="${p}|${esc(v[0])}" title="Aggiungi/rimuovi dalle preferite">${favs.has(p+"|"+v[0])?"★":"☆"}</button>${hasAn?'<span class="badge b-blue">analisi</span>':""}${(p==="P"?v[12]:v[11])?' <span class="badge b-green">CAM</span>':""}${(p!=="P"&&v[9])?' <span class="badge b-amber">SIC</span>':""}${a?' <span class="badge b-amber" title="Il termine cercato compare in una risorsa dell\'analisi di questa voce">≈ in analisi</span>':""}</td>
+      <td style="white-space:nowrap"><button class="favb" data-c="${p}|${esc(v[0])}" title="Aggiungi/rimuovi dalle preferite">${favs.has(p+"|"+v[0])?"★":"☆"}</button>${hasAn?'<span class="badge b-blue">analisi</span>':""}${lomBadge(p,v)}${(p==="P"?v[12]:v[11])?' <span class="badge b-green">CAM</span>':""}${(p!=="P"&&v[9])?' <span class="badge b-amber">SIC</span>':""}${a?' <span class="badge b-amber" title="Il termine cercato compare in una risorsa dell\'analisi di questa voce">≈ in analisi</span>':""}</td>
     </tr>`;
   }
   h+="</tbody></table>";
@@ -668,11 +679,13 @@ async function renderRaffronto(){
   try{ d=await loadStorico(); }
   catch(e){ el.innerHTML=`<div class="soonbox"><b>Serie storica non disponibile.</b><br>Il file dati del raffronto non è ancora stato pubblicato.</div>`; return; }
   const opts=i=>d.anni.map((a,j)=>`<option value="${j}"${j===i?" selected":""}>${esc(a)}</option>`).join("");
-  el.innerHTML=`<div class="rafbar">
-    <div class="fld"><label>Edizione di partenza</label><select id="raf-a">${opts(S.rafA)}</select></div>
-    <div class="fld"><label>Edizione di confronto</label><select id="raf-b">${opts(S.rafB)}</select></div>
-    <div class="rafhint">Distribuzione delle voci per classe di variazione e matrice per sezione. Cliccando una cella della matrice si apre l'elenco delle voci di quella sezione e classe. Media, mediana e Δ ponderata sono calcolate sulle voci presenti in entrambe le edizioni.</div>
-  </div><div id="rafout"></div>`;
+  const selCss="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff";
+  const labCss="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);display:block;margin-bottom:4px";
+  $("#tree").innerHTML=`<div class="bluhead" style="margin-top:0"><span>Edizioni a confronto</span></div>
+    <div style="margin:4px 0 10px"><label style="${labCss}">Edizione di partenza</label><select id="raf-a" style="${selCss}">${opts(S.rafA)}</select></div>
+    <div><label style="${labCss}">Edizione di confronto</label><select id="raf-b" style="${selCss}">${opts(S.rafB)}</select></div>
+    <div class="rafhint" style="margin-top:14px">Distribuzione delle voci per classe di variazione e matrice per sezione. Cliccando una cella della matrice si apre l'elenco delle voci di quella sezione e classe. Media, mediana e Δ ponderata sono calcolate sulle voci presenti in entrambe le edizioni.</div>`;
+  el.innerHTML=`<div id="rafout"></div>`;
   $("#raf-a").onchange=e=>{ S.rafA=+e.target.value; updateRaf(); };
   $("#raf-b").onchange=e=>{ S.rafB=+e.target.value; updateRaf(); };
   updateRaf();
@@ -1501,7 +1514,9 @@ function renderTabs(){
   }
   $("#lab-allparts").style.display = reg.parts.length>1 ? "" : "none";
   $("#lab-onlyan").style.display = (S.region==="PIE") ? "" : "none";
-  document.querySelector(".treetitle").style.display = (S.region==="PIE") ? "none" : "";
+  $("#lab-lom").style.display = (S.region==="PIE") ? "" : "none";
+  document.querySelector(".searchbox").style.display = (S.region==="RAF") ? "none" : "";
+  document.querySelector(".treetitle").style.display = (S.region==="PIE"||S.region==="RAF") ? "none" : "";
   renderTree();
   renderCapBar();
   setSticky();
@@ -1525,6 +1540,7 @@ $("#q").addEventListener("input",e=>{ S.q=e.target.value; clearTimeout(deb); deb
 $("#allparts").onchange=applyFilter;
 $("#onlypriced").onchange=applyFilter;
 $("#onlyan").onchange=applyFilter;
+$("#onlylom").onchange=applyFilter;
 $("#onlycam").onchange=applyFilter;
 $("#onlysic").onchange=applyFilter;
 $("#treset").onclick=()=>{ S.path=null; renderTree(); applyFilter(); };
