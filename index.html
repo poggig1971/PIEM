@@ -713,9 +713,24 @@ async function updateRaf(){
     return `<tr${isTot?' class="tot"':''}><td>${esc(key)}</td><td class="sn" title="${esc(nome)}">${esc(nome)}</td>${cells}
       <td>${fp(media)}</td><td>${fp(rafMedian(st.ds))}</td><td>${fp(pond)}</td><td>${st.n.toLocaleString("it-IT")}</td></tr>`;
   };
+  // destinazioni 2026 delle sezioni soppresse (dalla transcodifica per voce)
+  const dest={};
+  for(const v of d.voci){
+    if(!v[1]) continue;
+    let pf=v[1].split(".")[0];
+    if(/^[A-Z]/.test(pf)) pf=pf.slice(0,2);
+    if(!dest[v[2]]) dest[v[2]]={};
+    dest[v[2]][pf]=(dest[v[2]][pf]||0)+1;
+  }
   h+=rowH("TOT","TUTTE LE SEZIONI",tot,true);
   for(const s of Object.keys(stats).sort()){
-    h+=rowH(s, d.sez[s]||s, stats[s], false);
+    let nome=d.sez[s]||s;
+    const ds=dest[s];
+    if(ds&&!ds[s]){
+      const top=Object.entries(ds).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+      nome+=" → 2026: "+top.join(", ");
+    }
+    h+=rowH(s, nome, stats[s], false);
   }
   h+=`</tbody></table></div>
   <div style="font-size:11px;color:var(--mut);margin-top:10px">Le sezioni sono quelle della classificazione 2025: le voci ricollocate nell'edizione 2026 (es. sez. 25 «Grande viabilità» → sez. 33, PR e AT) sono seguite nei nuovi codici tramite la transcodifica ufficiale regionale, quindi una sezione può mostrare variazioni anche se non esiste più nella struttura 2026; nel dettaglio è riportato il codice 2026. Classi: Invariato = prezzo identico; Cancellato = presente in ${esc(d.anni[S.rafA])} ma non in ${esc(d.anni[S.rafB])}; Nuovo prezzo = viceversa. Fonte: serie storica ANCE su prezzari ufficiali Regione Piemonte e transcodifiche regionali.</div>`;
