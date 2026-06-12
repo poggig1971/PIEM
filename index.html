@@ -306,7 +306,7 @@ const PARTS = {
 };
 const SHARDS = {A:24,C:48,E:48,P:96};
 const REGOF = {A:"LOM",C:"LOM",E:"LOM",F:"LOM",P:"PIE"};
-const S = {region:"PIE", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null};
+const S = {region:"PIE", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null, pieCaps:null};
 
 const $=s=>document.querySelector(s);
 const fmt=(n,d=2)=>n==null?"—":n.toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -361,8 +361,10 @@ async function searchAnalisi(terms){
 
 function pieGrpOf(s){ if(/^AT/.test(s)) return "AT"; if(/^PR/.test(s)) return "PR"; if(/^RU/.test(s)) return "RU"; return "LAV"; }
 // Gruppi-scorciatoia trasversali: le sezioni restano anche nei gruppi originali
-const PIE_XGRP={SIC:["28","PR280"],ONE:["PR290"]};
+const PIE_XGRP={SIC:["28","PR280"],ONE:["PR290"],STR:["04","30","33"]};
+const PIE_XCAPS={STR:{"30":["A70","A75","A79","A80","A85","A87","A90","A95","B00"]}};
 function pieInGrp(s,g){ return PIE_XGRP[g]?PIE_XGRP[g].includes(s):pieGrpOf(s)===g; }
+function pieCapsOf(g,s){ return (PIE_XCAPS[g]&&PIE_XCAPS[g][s])||null; }
 function buildPieIdx(d){
   if(d.sez) return;
   const sez={}, fam={};
@@ -378,7 +380,7 @@ function buildPieIdx(d){
   });
   d.sez=sez; d.fam=fam;
 }
-const PIE_GRPS=[["LAV","Lavorazioni"],["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"],["SIC","Sicurezza (D.Lgs. 81/08)"],["ONE","Oneri di conferimento"]];
+const PIE_GRPS=[["LAV","Lavorazioni"],["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"],["SIC","Sicurezza (D.Lgs. 81/08)"],["ONE","Oneri di conferimento"],["STR","Lavorazioni stradali"]];
 function renderPieSidebar(){
   const el=$("#tree"); el.innerHTML="";
   const d=S.data.P;
@@ -391,16 +393,18 @@ function renderPieSidebar(){
   h+=`<div class="bluhead"><span>${S.pieGrp==="LAV"?"Tipologie":(PIE_XGRP[S.pieGrp]?"Sezioni":"Famiglie")}</span></div>`;
   for(const s of Object.keys(d.sez).filter(x=>pieInGrp(x,S.pieGrp)).sort()){
     const x=d.sez[s];
+    const caps=pieCapsOf(S.pieGrp,s);
+    const nn=caps?caps.reduce((t,f)=>t+((d.fam[s]&&d.fam[s][f]&&d.fam[s][f].n)||0),0):x.n;
     h+=`<div class="psz${s===S.pieSez?" sel":""}${s.includes("COM")?" com":""}" data-s="${s}" title="${esc(x.nome)}">
       <div class="nm">${esc(x.nome)}</div>
-      <div class="cd">PIE26_${esc(s)} · ${x.n.toLocaleString("it-IT")} voci</div></div>`;
+      <div class="cd">PIE26_${esc(s)}${caps?" · solo capitoli stradali":""} · ${nn.toLocaleString("it-IT")} voci</div></div>`;
   }
   el.innerHTML=h;
-  el.querySelectorAll(".pgr").forEach(b=>b.onclick=()=>{ S.pieGrp=b.dataset.g; S.pieSez=null; S.pieFam=null; renderPieSidebar(); renderCapBar(); applyFilter(); });
-  el.querySelectorAll(".psz").forEach(b=>b.onclick=()=>{ S.pieSez=(S.pieSez===b.dataset.s)?null:b.dataset.s; S.pieFam=null; renderPieSidebar(); renderCapBar(); applyFilter(); });
+  el.querySelectorAll(".pgr").forEach(b=>b.onclick=()=>{ S.pieGrp=b.dataset.g; S.pieSez=null; S.pieFam=null; S.pieCaps=null; renderPieSidebar(); renderCapBar(); applyFilter(); });
+  el.querySelectorAll(".psz").forEach(b=>b.onclick=()=>{ S.pieSez=(S.pieSez===b.dataset.s)?null:b.dataset.s; S.pieFam=null; S.pieCaps=S.pieSez?pieCapsOf(S.pieGrp,S.pieSez):null; renderPieSidebar(); renderCapBar(); applyFilter(); });
   const pc=document.getElementById("pclr");
   if(pc) pc.onclick=()=>{
-    S.pieSez=null; S.pieFam=null; S.q=""; $("#q").value="";
+    S.pieSez=null; S.pieFam=null; S.pieCaps=null; S.q=""; $("#q").value="";
     $("#onlyan").checked=false; $("#onlycam").checked=false; $("#onlysic").checked=false; $("#onlyfav").checked=false; $("#inan").checked=false; $("#onlypriced").checked=true;
     renderPieSidebar(); renderCapBar(); applyFilter();
   };
@@ -409,7 +413,7 @@ function renderCapBar(){
   const el=$("#capbar");
   const d=S.data.P;
   if(S.region!=="PIE"||!d||!S.pieSez||!d.fam[S.pieSez]){ el.style.display="none"; el.innerHTML=""; return; }
-  const fams=Object.keys(d.fam[S.pieSez]).sort();
+  const fams=Object.keys(d.fam[S.pieSez]).filter(f=>!S.pieCaps||S.pieCaps.includes(f)).sort();
   if(fams.length<2){ el.style.display="none"; el.innerHTML=""; return; }
   let h=`<div class="bluhead" style="margin-top:0"><span>Capitoli — ${esc(S.pieSez)} · ${esc(d.sez[S.pieSez].nome.slice(0,60))}</span></div><div class="pf-row">`;
   for(const f of fams){
@@ -537,6 +541,7 @@ async function applyFilter(){
       if(onlySic && !(p==="P"?(v[0].startsWith("28.")||v[0].startsWith("PR280.")):v[9])) continue;
       if(p==="P"){
         if(S.pieSez && !(v[0]===S.pieSez||v[0].startsWith(S.pieSez+"."))) continue;
+        if(S.pieCaps && !S.pieCaps.includes(v[0].split(".")[1])) continue;
         if(S.pieFam && !v[0].startsWith(S.pieSez+"."+S.pieFam+".")) continue;
       }
       if(!all && S.path && p!=="P"){
@@ -624,7 +629,7 @@ function crumb(){
   }
   else if(S.path) h+=` › ${esc(S.path.split("|").join(" › "))} <button id="cclr">× rimuovi filtro categoria</button>`;
   el.innerHTML=h;
-  const b=$("#cclr"); if(b) b.onclick=()=>{S.path=null;S.pieSez=null;S.pieFam=null;document.querySelectorAll(".tnode.sel").forEach(x=>x.classList.remove("sel"));renderTree();renderCapBar();applyFilter();};
+  const b=$("#cclr"); if(b) b.onclick=()=>{S.path=null;S.pieSez=null;S.pieFam=null;S.pieCaps=null;document.querySelectorAll(".tnode.sel").forEach(x=>x.classList.remove("sel"));renderTree();renderCapBar();applyFilter();};
 }
 function showLoading(){ $("#results").innerHTML=`<div class="ld"><span class="spin"></span>Caricamento dati…</div>`; }
 
