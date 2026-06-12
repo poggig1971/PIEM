@@ -819,6 +819,12 @@ async function loadPieLom(){
   catch(e){ PIELOM={}; }
   return PIELOM;
 }
+/* corrispondenze lavorazione PIE -> lavorazione LOM (Modulo B, solo coppie coerenti) */
+let PIELAV=null;
+async function loadPieLav(){
+  if(!PIELAV){ try{ const r=await fetch("data/pie_lom_lav.json"); PIELAV=await r.json(); }catch(e){ PIELAV={}; } }
+  return PIELAV;
+}
 
 /* ---------- dettaglio voce ---------- */
 async function getDetail(p,cod){
@@ -844,6 +850,7 @@ async function openVoce({p,v},opts={}){
   try{ det=await getDetail(p,v[0]); }catch(e){}
   const an=det&&det.an;
   if(an&&REGOF[p]==="PIE") await loadPieLom();
+  if(REGOF[p]==="PIE") await loadPieLav();
   const fk=p+"|"+v[0];
   let h=`<div class="phead">
     <span class="cod">${esc(reg.pfx)}${esc(v[0])}</span>
@@ -868,6 +875,17 @@ async function openVoce({p,v},opts={}){
     ${v[8]?`<div class="kpi"><div class="k">Prezzo modesta compl.</div><div class="v">${eur(v[8])}</div></div>`:""}
     ${v[9]?`<div class="kpi"><div class="k">Voce sicurezza (_S)</div><div class="v">${eur(v[9])}</div></div>`:""}
   </div>`;
+  const lav=(REGOF[p]==="PIE"&&PIELAV)?PIELAV[v[0]]:null;
+  if(lav){
+    const dpc=(v[3]>0&&lav[2]>0)?100*(v[3]-lav[2])/lav[2]:null;
+    const BL={A:"alta",M:"media",B:"bassa",MB:"molto bassa"};
+    h+=`<div class="sect"><h3>Lavorazione equivalente Lombardia 2026 <small>corrispondenza automatica ANCE su descrizioni e prezzi — non ufficiale</small></h3>
+    <div class="kv">
+      <div class="k">Voce Lombardia</div><div><a href="#" id="lavlink" data-bp="${lav[1]}" data-bcod="${esc(lav[0])}" style="font-family:Consolas,monospace;font-size:12px">LOM261.${esc(lav[0])}</a></div>
+      <div class="k">Prezzo Lombardia</div><div><b>${eur(lav[2])}</b>${dpc!=null?` — Piemonte ${dpc>=0?"+":""}${fmt(dpc,1)}% rispetto a Lombardia`:""}</div>
+      <div class="k">Affidabilità abbinamento</div><div>${BL[lav[3]]||lav[3]}</div>
+    </div></div>`;
+  }
   if(det&&det.declx) h+=`<div class="sect"><h3>Lavorazione e specifiche tecniche</h3><div class="txt">${esc(det.declx)}</div></div>`;
   if(an){
     h+=`<div class="sect"><h3>Analisi prezzi <small>scomposizione in risorse elementari</small> <button class="sgbtn" id="sgall">⚑ Segnala anomalia</button>${REGOF[p]==="PIE"&&Object.keys(LOMFIX).length?`<button class="sgbtn" id="fixexp" title="Scarica le correzioni dei riferimenti Lombardia salvate in questo browser">⬇ Correzioni LOM (${Object.keys(LOMFIX).length})</button>`:""}${REGOF[p]==="PIE"?`<button class="sgbtn" id="cmpb" title="Modulo B: affianca questa analisi a un'analisi del prezzario Lombardia">⇄ Confronta con LOM</button>`:""}</h3>
@@ -939,6 +957,13 @@ async function openVoce({p,v},opts={}){
     try{ await navigator.clipboard.writeText(url); pl.textContent="✓ Copiato"; }
     catch(e){ prompt("Copia il link:",url); }
     setTimeout(()=>{ pl.textContent="Copia link"; },1600);
+  };
+  const ll=document.getElementById("lavlink");
+  if(ll) ll.onclick=async ev=>{
+    ev.preventDefault();
+    const d2=await loadPart(ll.dataset.bp);
+    const found=d2.voci.find(x=>x[0]===ll.dataset.bcod);
+    if(found) openVoce({p:ll.dataset.bp,v:found},{push:true});
   };
   pan.querySelectorAll("a[data-rcod]").forEach(a=>a.onclick=async ev=>{
     ev.preventDefault();
