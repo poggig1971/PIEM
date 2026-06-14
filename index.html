@@ -273,6 +273,16 @@ const REGIONS = {
     rlink:/^[A-Z]{2}\d{2}\./,
     stats:[["Voci di listino","45.252"],["Analisi prezzi","11.359"],["Sezioni","32"]],
   },
+  PAN:{
+    nome:"PIE Analisi",
+    titolo:"Prezzario Regionale Piemonte — Analisi prezzi 2026",
+    fonte:'Solo le voci con analisi prezzi · D.G.R. 9 giugno 2026, n. 12-2656 · B.U. Regione Piemonte n. 23 S.s. n. 2 dell\'11 giugno 2026 · <a href="https://prezzario.regione.piemonte.it/2026" target="_blank" rel="noopener">Fonte ufficiale ↗</a>',
+    pfx:"PIE26_",
+    parts:["P"],
+    racc:"Codice ed. 2025 (transcodifica)",
+    rlink:/^[A-Z]{2}\d{2}\./,
+    stats:[["Analisi prezzi","11.359"],["Voci di listino","45.252"],["Sezioni con analisi","25"]],
+  },
   LOM:{
     nome:"Lombardia",
     titolo:"Prezzario Regionale Lombardia — edizione 2026",
@@ -307,7 +317,7 @@ const PARTS = {
 };
 const SHARDS = {A:24,C:48,E:48,P:96};
 const REGOF = {A:"LOM",C:"LOM",E:"LOM",F:"LOM",P:"PIE"};
-const S = {region:"PIE", part:{LOM:"A",PIE:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null, pieCaps:null};
+const S = {region:"PIE", part:{LOM:"A",PIE:"P",PAN:"P"}, data:{}, det:{}, path:null, q:"", page:0, PAGE:150, list:[], sort:null, pieGrp:"LAV", pieSez:null, pieFam:null, pieCaps:null};
 
 const $=s=>document.querySelector(s);
 const fmt=(n,d=2)=>n==null?"—":n.toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -366,9 +376,14 @@ const PIE_XGRP={SIC:["28","PR280"],ONE:["PR290"],STR:["04","30","33"]};
 const PIE_XCAPS={STR:{"30":["A70","A75","A79","A80","A85","A87","A90","A95","B00"]}};
 function pieInGrp(s,g){ return PIE_XGRP[g]?PIE_XGRP[g].includes(s):pieGrpOf(s)===g; }
 function pieCapsOf(g,s){ return (PIE_XCAPS[g]&&PIE_XCAPS[g][s])||null; }
+// PIE e PAN ("PIE Analisi") condividono la navigazione a matrice; PAN naviga solo le voci con analisi
+function isPieReg(r){ r=r||S.region; return r==="PIE"||r==="PAN"; }
+function pieAn(){ return S.region==="PAN"; }
+function pieSezIdx(){ const d=S.data.P; return d?(pieAn()?d.sezA:d.sez):{}; }
+function pieFamIdx(){ const d=S.data.P; return d?(pieAn()?d.famA:d.fam):{}; }
 function buildPieIdx(d){
   if(d.sez) return;
-  const sez={}, fam={};
+  const sez={}, fam={}, sezA={}, famA={};
   d.voci.forEach(v=>{
     const seg=v[0].split(".");
     const s=seg[0], f=seg[1]||"";
@@ -378,24 +393,32 @@ function buildPieIdx(d){
     if(!fam[s]) fam[s]={};
     if(!fam[s][f]) fam[s][f]={nome:path[1]||"",n:0};
     fam[s][f].n++;
+    if(v[11]){ // solo voci con analisi prezzi → indice per la scheda PAN
+      if(!sezA[s]) sezA[s]={nome:path[0],grp:pieGrpOf(s),n:0};
+      sezA[s].n++;
+      if(!famA[s]) famA[s]={};
+      if(!famA[s][f]) famA[s][f]={nome:path[1]||"",n:0};
+      famA[s][f].n++;
+    }
   });
-  d.sez=sez; d.fam=fam;
+  d.sez=sez; d.fam=fam; d.sezA=sezA; d.famA=famA;
 }
 const PIE_GRPS=[["LAV","Lavorazioni"],["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"],["SIC","Sicurezza (D.Lgs. 81/08)"],["ONE","Oneri di conferimento"],["STR","Lavorazioni stradali"]];
 function renderPieSidebar(){
   const el=$("#tree"); el.innerHTML="";
   const d=S.data.P;
   if(!d) return;
+  const sez=pieSezIdx(), fam=pieFamIdx();
   let h=`<div class="bluhead"><span>Gruppo</span><button id="pclr">azzera filtri</button></div>`;
   for(const [g,lab] of PIE_GRPS){
-    const ns=Object.keys(d.sez).filter(s=>pieInGrp(s,g)).length;
+    const ns=Object.keys(sez).filter(s=>pieInGrp(s,g)).length;
     h+=`<div class="pgr${S.pieGrp===g?" sel":""}" data-g="${g}"><span>${lab}</span><span class="n">${ns}</span></div>`;
   }
   h+=`<div class="bluhead"><span>${S.pieGrp==="LAV"?"Tipologie":(PIE_XGRP[S.pieGrp]?"Sezioni":"Famiglie")}</span></div>`;
-  for(const s of Object.keys(d.sez).filter(x=>pieInGrp(x,S.pieGrp)).sort()){
-    const x=d.sez[s];
+  for(const s of Object.keys(sez).filter(x=>pieInGrp(x,S.pieGrp)).sort()){
+    const x=sez[s];
     const caps=pieCapsOf(S.pieGrp,s);
-    const nn=caps?caps.reduce((t,f)=>t+((d.fam[s]&&d.fam[s][f]&&d.fam[s][f].n)||0),0):x.n;
+    const nn=caps?caps.reduce((t,f)=>t+((fam[s]&&fam[s][f]&&fam[s][f].n)||0),0):x.n;
     h+=`<div class="psz${s===S.pieSez?" sel":""}${s.includes("COM")?" com":""}" data-s="${s}" title="${esc(x.nome)}">
       <div class="nm">${esc(x.nome)}</div>
       <div class="cd">PIE26_${esc(s)}${caps?" · solo capitoli stradali":""} · ${nn.toLocaleString("it-IT")} voci</div></div>`;
@@ -413,12 +436,13 @@ function renderPieSidebar(){
 function renderCapBar(){
   const el=$("#capbar");
   const d=S.data.P;
-  if(S.region!=="PIE"||!d||!S.pieSez||!d.fam[S.pieSez]){ el.style.display="none"; el.innerHTML=""; return; }
-  const fams=Object.keys(d.fam[S.pieSez]).filter(f=>!S.pieCaps||S.pieCaps.includes(f)).sort();
+  const sez=pieSezIdx(), fam=pieFamIdx();
+  if(!isPieReg()||!d||!S.pieSez||!fam[S.pieSez]){ el.style.display="none"; el.innerHTML=""; return; }
+  const fams=Object.keys(fam[S.pieSez]).filter(f=>!S.pieCaps||S.pieCaps.includes(f)).sort();
   if(fams.length<2){ el.style.display="none"; el.innerHTML=""; return; }
-  let h=`<div class="bluhead" style="margin-top:0"><span>Capitoli — ${esc(S.pieSez)} · ${esc(d.sez[S.pieSez].nome.slice(0,60))}</span></div><div class="pf-row">`;
+  let h=`<div class="bluhead" style="margin-top:0"><span>Capitoli — ${esc(S.pieSez)} · ${esc(sez[S.pieSez].nome.slice(0,60))}</span></div><div class="pf-row">`;
   for(const f of fams){
-    const y=d.fam[S.pieSez][f];
+    const y=fam[S.pieSez][f];
     let nm=y.nome?y.nome.charAt(0)+y.nome.slice(1).toLowerCase():f;
     if(nm.length>44) nm=nm.slice(0,44)+"…";
     h+=`<div class="pcap${f===S.pieFam?" sel":""}" data-f="${f}" title="${esc(y.nome)}" style="margin-bottom:0"><b>${esc(f)}</b>${esc(nm)}<span class="n">${y.n.toLocaleString("it-IT")}</span></div>`;
@@ -474,7 +498,7 @@ function buildTreeF(voci){
   return root;
 }
 function renderTree(){
-  if(S.region==="PIE"){ renderPieSidebar(); return; }
+  if(isPieReg()){ renderPieSidebar(); return; }
   const d=S.data[curPart()];
   const el=$("#tree"); el.innerHTML="";
   if(d) el.appendChild(treeUL(d.tree,[]));
@@ -520,12 +544,12 @@ async function applyFilter(){
   const qn=norm(S.q.trim());
   const terms=qn.split(/\s+/).filter(t=>t.length>1);
   const onlyP=$("#onlypriced").checked;
-  const onlyAn=$("#onlyan").checked;
+  const onlyAn=$("#onlyan").checked || S.region==="PAN"; // PAN: solo voci con analisi
   const onlyCam=$("#onlycam").checked;
   const onlySic=$("#onlysic").checked;
   const onlyFav=$("#onlyfav").checked;
-  const onlyLom=$("#onlylom").checked && S.region==="PIE";
-  if(S.region==="PIE") await loadPieLav();
+  const onlyLom=$("#onlylom").checked && isPieReg();
+  if(isPieReg()) await loadPieLav();
   const all=$("#allparts").checked && terms.length>0;
   let anHits=null;
   if($("#inan").checked && terms.length>0){
@@ -616,7 +640,7 @@ function renderList(){
   h+="</tbody></table>";
   if(upto<rows.length) h+=`<button class="more" id="more">Mostra altre ${Math.min(S.PAGE,rows.length-upto).toLocaleString("it-IT")} voci (${(rows.length-upto).toLocaleString("it-IT")} rimanenti)</button>`;
   el.innerHTML=h;
-  el.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>openVoce(rows[+tr.dataset.i]));
+  el.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>openVoce(rows[+tr.dataset.i],{toAnalisi:S.region==="PAN"}));
   el.querySelectorAll(".favb").forEach(b=>b.onclick=ev=>{
     ev.stopPropagation();
     toggleFav(b.dataset.c);
@@ -633,9 +657,9 @@ function renderList(){
 function crumb(){
   const el=$("#crumb");
   let h=`<b>${curReg().nome} · ${PARTS[curPart()]?PARTS[curPart()].label:""}</b>`;
-  if(S.region==="PIE"&&S.pieSez&&S.data.P){
-    h+=` › ${esc(S.pieSez)} ${esc(S.data.P.sez[S.pieSez].nome.slice(0,50))}`;
-    if(S.pieFam&&S.data.P.fam[S.pieSez][S.pieFam]) h+=` › ${esc(S.pieFam)} ${esc(S.data.P.fam[S.pieSez][S.pieFam].nome.slice(0,40))}`;
+  if(isPieReg()&&S.pieSez&&S.data.P&&pieSezIdx()[S.pieSez]){
+    h+=` › ${esc(S.pieSez)} ${esc(pieSezIdx()[S.pieSez].nome.slice(0,50))}`;
+    if(S.pieFam&&pieFamIdx()[S.pieSez]&&pieFamIdx()[S.pieSez][S.pieFam]) h+=` › ${esc(S.pieFam)} ${esc(pieFamIdx()[S.pieSez][S.pieFam].nome.slice(0,40))}`;
     h+=` <button id="cclr">× rimuovi filtri</button>`;
   }
   else if(S.path) h+=` › ${esc(S.path.split("|").join(" › "))} <button id="cclr">× rimuovi filtro categoria</button>`;
@@ -901,7 +925,7 @@ async function openVoce({p,v},opts={}){
   }
   if(det&&det.declx) h+=`<div class="sect"><h3>Lavorazione e specifiche tecniche</h3><div class="txt">${esc(det.declx)}</div></div>`;
   if(an){
-    h+=`<div class="sect"><h3>Analisi prezzi <small>scomposizione in risorse elementari</small> <button class="sgbtn" id="sgall">⚑ Segnala anomalia</button>${REGOF[p]==="PIE"&&Object.keys(LOMFIX).length?`<button class="sgbtn" id="fixexp" title="Scarica le correzioni dei riferimenti Lombardia salvate in questo browser">⬇ Correzioni LOM (${Object.keys(LOMFIX).length})</button>`:""}${REGOF[p]==="PIE"?`<button class="sgbtn" id="cmpb" title="Modulo B: affianca questa analisi a un'analisi del prezzario Lombardia">⇄ Confronta con LOM</button>`:""}</h3>
+    h+=`<div class="sect" id="ansect"><h3>Analisi prezzi <small>scomposizione in risorse elementari</small> <button class="sgbtn" id="sgall">⚑ Segnala anomalia</button>${REGOF[p]==="PIE"&&Object.keys(LOMFIX).length?`<button class="sgbtn" id="fixexp" title="Scarica le correzioni dei riferimenti Lombardia salvate in questo browser">⬇ Correzioni LOM (${Object.keys(LOMFIX).length})</button>`:""}${REGOF[p]==="PIE"?`<button class="sgbtn" id="cmpb" title="Modulo B: affianca questa analisi a un'analisi del prezzario Lombardia">⇄ Confronta con LOM</button>`:""}</h3>
     <table class="an"><thead><tr><th>Codice risorsa</th><th>Descrizione</th><th>U.M.</th><th class="num">Quantità</th><th class="num">Costo unit. €</th><th class="num">Costo €</th><th class="num">Inc. %</th><th></th></tr></thead><tbody>`;
     let lastCat="";
     const tot=an.tot||v[3];
@@ -959,6 +983,7 @@ async function openVoce({p,v},opts={}){
   }
   h+=`</div>`;
   pan.innerHTML=h;
+  if(opts.toAnalisi){ const as=document.getElementById("ansect"); if(as) setTimeout(()=>{ try{ as.scrollIntoView({block:"start"}); }catch(e){} },30); }
   const pc=document.getElementById("pclose"); if(pc) pc.onclick=closeVoce;
   const pf=document.getElementById("pfav");
   if(pf) pf.onclick=()=>{ toggleFav(fk); pf.textContent=favs.has(fk)?"★ Preferita":"☆ Preferita"; };
@@ -1482,8 +1507,8 @@ function renderRegions(){
   for(const [r,info] of Object.entries(REGIONS)){
     const b=document.createElement("button");
     b.className="reg"+(r===S.region?" active":"");
-    b.innerHTML=esc(info.nome)+(r==="RAF"?'<span class="soon">storico PIE</span>':"")+(r==="CMP"?'<span class="soon">risorse</span>':"");
-    b.onclick=async()=>{ S.region=r; S.path=null; S.sort=null; S.q=""; $("#q").value="";
+    b.innerHTML=esc(info.nome)+(r==="PAN"?'<span class="soon">solo analisi</span>':"")+(r==="RAF"?'<span class="soon">storico PIE</span>':"")+(r==="CMP"?'<span class="soon">risorse</span>':"");
+    b.onclick=async()=>{ S.region=r; S.path=null; S.sort=null; S.q=""; $("#q").value=""; S.pieSez=null; S.pieFam=null; S.pieCaps=null;
       renderRegions(); renderHeader(); renderTabs(); showLoading();
       if(r==="RAF"||r==="CMP"){ $("#tree").innerHTML=""; if(r==="RAF") renderRaffronto(); else renderCmp(); return; }
       await loadPart(curPart()); renderTree(); applyFilter(); renderTabs(); };
@@ -1514,9 +1539,9 @@ function renderTabs(){
   }
   $("#lab-allparts").style.display = reg.parts.length>1 ? "" : "none";
   $("#lab-onlyan").style.display = (S.region==="PIE") ? "" : "none";
-  $("#lab-lom").style.display = (S.region==="PIE") ? "" : "none";
+  $("#lab-lom").style.display = isPieReg() ? "" : "none";
   document.querySelector(".searchbox").style.display = (S.region==="RAF") ? "none" : "";
-  document.querySelector(".treetitle").style.display = (S.region==="PIE"||S.region==="RAF") ? "none" : "";
+  document.querySelector(".treetitle").style.display = (isPieReg()||S.region==="RAF") ? "none" : "";
   renderTree();
   renderCapBar();
   setSticky();
