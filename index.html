@@ -410,7 +410,7 @@ function buildPieIdx(d){
   });
   d.sez=sez; d.fam=fam; d.sezA=sezA; d.famA=famA;
 }
-const PIE_GRPS=[["LAV","Lavorazioni"],["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"],["SIC","Sicurezza (D.Lgs. 81/08)"],["ONE","Oneri di conferimento"],["STR","Lavorazioni stradali"]];
+const PIE_GRPS=[["PR","Prodotti (PR)"],["AT","Noli e attrezzature (AT)"],["RU","Manodopera (RU)"],["LAV","Lavorazioni"],["STR","Lavorazioni stradali"],["ONE","Oneri di conferimento"],["SIC","Sicurezza (D.Lgs. 81/08)"]];
 function renderPieSidebar(){
   const el=$("#tree"); el.innerHTML="";
   const d=S.data.P;
