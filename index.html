@@ -1684,7 +1684,7 @@ function catLab(c){ return CAT_LAB[c] || (c.charAt(0)+c.slice(1).toLowerCase());
 async function loadPaniere(){ if(!PANI){ const r=await fetch("data/paniere.json"); PANI=await r.json(); } return PANI; }
 function pFirst(s){ for(let i=0;i<s.length;i++){ if(s[i]!=null) return s[i]; } return null; }
 function pLast(s){ for(let i=s.length-1;i>=0;i--){ if(s[i]!=null) return s[i]; } return null; }
-function pDelta(s){ const f=pFirst(s),l=pLast(s); if(f==null||l==null||f===0) return null; return (l-f)/f*100; }
+function pDelta(s){ const a=s[s.length-2],b=s[s.length-1]; if(a==null||b==null||a===0) return null; return (b-a)/a*100; }
 function pRep(v){
   if(!v.items.length) return null;
   let best=null,bs=-1;
@@ -1728,7 +1728,7 @@ async function renderPaniere(){
   h+=`<div class="bar" style="display:flex"><input type="text" id="monq" placeholder="Filtra per materiale o codice…" value="${esc(S.monQ||"")}" style="flex:1;min-width:200px;max-width:380px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"><span class="res">${rows.length} materiali</span><button class="exp" id="moncsv">&#11015; Esporta CSV</button></div>`;
   if(!rows.length){ h+=`<div class="empty">Nessun materiale per i filtri impostati.</div>`; $("#results").innerHTML=h; bindMon(); return; }
   let lastCat=null;
-  h+=`<table class="lst"><thead><tr><th>Materiale</th><th>U.M.</th><th class="num">Prezzo ${esc(d.anni[d.anni.length-1])} €</th><th class="num">Δ% ${esc(d.anni[0])}→${esc(d.anni[d.anni.length-1])}</th><th>Andamento</th><th class="num">Varianti</th><th></th></tr></thead><tbody>`;
+  h+=`<table class="lst"><thead><tr><th>Materiale</th><th>U.M.</th><th class="num">Prezzo ${esc(d.anni[d.anni.length-1])} €</th><th class="num">Δ% ${esc(d.anni[d.anni.length-2])}→${esc(d.anni[d.anni.length-1])}</th><th>Andamento</th><th class="num">Varianti</th><th></th></tr></thead><tbody>`;
   rows.forEach(v=>{
     if(v.cat!==lastCat){ lastCat=v.cat; h+=`<tr class="cat"><td colspan="7" style="background:#eef2fb;color:var(--navy);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:7px 12px">${esc(catLab(v.cat))}</td></tr>`; }
     const i=d.voci.indexOf(v);
@@ -1765,7 +1765,7 @@ function pChart(items,anni){
   const n=anni.length;
   const X=i=>pl+(i/(n-1))*(W-pl-pr);
   const Y=v=>pt+(1-(v-mn)/rg)*(H-pt-pb);
-  let g=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="background:#fff;border:1px solid var(--border);border-radius:10px">`;
+  let g=`<svg class="pchart" width="100%" viewBox="0 0 ${W} ${H}" style="background:#fff;border:1px solid #dde3ef;border-radius:10px">`;
   for(let k=0;k<=4;k++){ const val=mn+rg*k/4; const y=Y(val); g+=`<line x1="${pl}" y1="${y.toFixed(1)}" x2="${W-pr}" y2="${y.toFixed(1)}" stroke="#eef2fb"/><text x="${pl-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#67718a">${fmt(val,2)}</text>`; }
   anni.forEach((a,i)=>{ g+=`<text x="${X(i).toFixed(1)}" y="${H-pb+16}" text-anchor="middle" font-size="9" fill="#67718a">${esc(a)}</text>`; });
   items.forEach((it,ci)=>{
@@ -1778,6 +1778,26 @@ function pChart(items,anni){
   g+=`</svg>`;
   return g;
 }
+function panelChartsPng(name){
+  const svgs=[...document.querySelectorAll("#panel svg.pchart")];
+  if(!svgs.length){ alert("Nessun grafico da esportare."); return; }
+  const meta=svgs.map(s=>{ const vb=(s.getAttribute("viewBox")||"0 0 660 240").split(/\s+/); return {s:s,w:+vb[2],h:+vb[3]}; });
+  const W=Math.max(...meta.map(m=>m.w)), gap=12, pad=12, sc=2;
+  const totH=meta.reduce((a,m)=>a+m.h,0)+gap*(meta.length-1)+pad*2;
+  const cv=document.createElement("canvas"); cv.width=(W+pad*2)*sc; cv.height=totH*sc;
+  const ctx=cv.getContext("2d"); ctx.scale(sc,sc); ctx.fillStyle="#fff"; ctx.fillRect(0,0,W+pad*2,totH);
+  let y=pad, pending=meta.length;
+  function done(){ if(--pending>0) return; try{ cv.toBlob(b=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=(name||"grafico")+".png"; a.click(); }); }catch(e){ alert("Esportazione non riuscita su questo browser: usare il pulsante Stampa/PDF."); } }
+  meta.forEach(m=>{
+    const clone=m.s.cloneNode(true); clone.setAttribute("width",m.w); clone.setAttribute("height",m.h);
+    const xml=new XMLSerializer().serializeToString(clone);
+    const img=new Image(); const yy=y;
+    img.onload=()=>{ ctx.drawImage(img,pad,yy,m.w,m.h); done(); };
+    img.onerror=done;
+    img.src="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(xml)));
+    y+=m.h+gap;
+  });
+}
 function openPaniere(i,seg){
   const d=PANI, v=d.voci[i];
   const o=$("#ovl"),p=$("#panel");
@@ -1786,12 +1806,13 @@ function openPaniere(i,seg){
   if(rep){
     const pr=pLast(rep.s),dl=pDelta(rep.s);
     kp+=`<div class="kpi"><div class="k">Prezzo ${esc(d.anni[d.anni.length-1])}</div><div class="v">${rep.s[5]!=null?eur(pr):eur(pr)+" <small>(ed.2025)</small>"}</div></div>`;
-    kp+=`<div class="kpi"><div class="k">Δ% ${esc(d.anni[0])}→${esc(d.anni[d.anni.length-1])}</div><div class="v">${dl!=null?(dl>0?"+":"")+fmt(dl,1)+"%":"—"}</div></div>`;
+    kp+=`<div class="kpi"><div class="k">Δ% ${esc(d.anni[d.anni.length-2])}→${esc(d.anni[d.anni.length-1])}</div><div class="v">${dl!=null?(dl>0?"+":"")+fmt(dl,1)+"%":"—"}</div></div>`;
   }
   kp+=`<div class="kpi"><div class="k">Varianti</div><div class="v">${v.items.length}</div></div>`;
   kp+=`<div class="kpi"><div class="k">Categoria</div><div class="v" style="font-size:13px">${esc(catLab(v.cat))}</div></div></div>`;
   let h=`<div class="phead"><span class="cod">${esc(v.code)}</span><div style="flex:1"><div style="font-weight:700;font-size:15px">${esc(v.label)}</div><div style="font-size:11px;opacity:.8;margin-top:2px">Monitoraggio prezzi materiali · ${esc(catLab(v.cat))}</div></div><button class="x" id="pvx">×</button></div>`;
   h+=`<div class="pbody">${kp}`;
+  h+=`<div style="display:flex;gap:8px;margin:-2px 0 12px;flex-wrap:wrap"><button class="pact" id="pvprint" style="color:var(--navy);background:#eef2fb;border:1px solid var(--border)">\ud83d\udda8 Stampa / PDF</button><button class="pact" id="pvpng" style="color:var(--navy);background:#eef2fb;border:1px solid var(--border)">\ud83d\uddbc Scarica grafico (PNG)</button></div>`;
   if(v.stato==="assente") h+=`<div class="rafhint" style="background:#fdeec9;border:1px solid var(--amber);border-radius:8px;padding:8px 12px;margin-bottom:12px">Voce non presente nella serie storica del prezzario. Il prezzo va rilevato da fonte esterna (es. quotazioni MASE per i combustibili). Le imprese possono comunque segnalare i prezzi pagati.</div>`;
   else if(v.stato==="parziale") h+=`<div class="rafhint" style="background:#fdeec9;border:1px solid var(--amber);border-radius:8px;padding:8px 12px;margin-bottom:12px">Voce priva di prezzo nell'edizione 2026 (dismessa o ricodificata): l'ultimo dato ufficiale disponibile è quello indicato.</div>`;
   if(v.nota) h+=`<div class="rafhint" style="background:#e8f0ff;border:1px solid var(--blue);border-radius:8px;padding:8px 12px;margin-bottom:12px">&#8505; ${esc(v.nota)}</div>`;
@@ -1819,6 +1840,7 @@ function openPaniere(i,seg){
   p.innerHTML=h;
   o.classList.add("show"); document.body.style.overflow="hidden";
   $("#pvx").onclick=()=>{ o.classList.remove("show"); document.body.style.overflow=""; };
+  { const pp=document.getElementById("pvprint"); if(pp) pp.onclick=()=>{ document.body.classList.add("printing"); setTimeout(()=>window.print(),60); }; const pg=document.getElementById("pvpng"); if(pg) pg.onclick=()=>panelChartsPng((v.code+"_"+v.label).replace(/[^0-9A-Za-z]+/g,"_").slice(0,40)); }
   $("#pvseg").onclick=()=>openSegPrezzo(v,pRep(v)||null);
   p.querySelectorAll(".sgbtn[data-it]").forEach(b=>b.onclick=()=>openSegPrezzo(v,v.items[+b.dataset.it]));
   if(seg) openSegPrezzo(v,pRep(v)||null);
