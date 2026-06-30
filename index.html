@@ -1796,8 +1796,16 @@ function openPaniere(i,seg){
   else if(v.stato==="parziale") h+=`<div class="rafhint" style="background:#fdeec9;border:1px solid var(--amber);border-radius:8px;padding:8px 12px;margin-bottom:12px">Voce priva di prezzo nell'edizione 2026 (dismessa o ricodificata): l'ultimo dato ufficiale disponibile è quello indicato.</div>`;
   if(v.nota) h+=`<div class="rafhint" style="background:#e8f0ff;border:1px solid var(--blue);border-radius:8px;padding:8px 12px;margin-bottom:12px">&#8505; ${esc(v.nota)}</div>`;
   if(v.items.length){
-    h+=`<div class="sect"><h3>Andamento prezzo <small>serie ufficiale ${esc(d.anni[0])} → ${esc(d.anni[d.anni.length-1])}</small></h3>${pChart(v.items,d.anni)}`;
-    if(v.items.length>1){ h+=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px">`; v.items.forEach((it,ci)=>{ h+=`<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:3px;background:${PAL[ci%PAL.length]};display:inline-block;border-radius:2px"></span>${esc(it.ds||it.c25)}</span>`; }); h+=`</div>`; }
+    const byUm={}; v.items.forEach(it=>{(byUm[it.um]=byUm[it.um]||[]).push(it);});
+    const _ums=Object.keys(byUm);
+    h+=`<div class="sect"><h3>Andamento prezzo <small>serie ufficiale ${esc(d.anni[0])} \u2192 ${esc(d.anni[d.anni.length-1])}</small></h3>`;
+    if(_ums.length>1) h+=`<div class="rafhint" style="margin:0 0 8px">Le varianti hanno unit\u00e0 di misura diverse: un grafico separato per ciascuna (\u20ac/${_ums.map(esc).join(", \u20ac/")}).</div>`;
+    _ums.forEach(um=>{
+      const its=byUm[um];
+      if(_ums.length>1) h+=`<div style="font-size:11.5px;font-weight:700;color:var(--navy);margin:10px 0 2px">Prezzi in \u20ac/${esc(um||"-")}</div>`;
+      h+=pChart(its,d.anni);
+      if(its.length>1){ h+=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px">`; its.forEach((it,ci)=>{ h+=`<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:3px;background:${PAL[ci%PAL.length]};display:inline-block;border-radius:2px"></span>${esc(it.ds||it.c25)} <span style="color:var(--mut)">\u00b7 \u20ac/${esc(it.um)}</span></span>`; }); h+=`</div>`; }
+    });
     h+=`</div>`;
     h+=`<div class="sect"><h3>Dettaglio varianti</h3><div style="overflow-x:auto"><table class="an"><thead><tr><th>Codice 2025</th><th>Codice 2026</th><th>Descrizione</th><th>U.M.</th>${d.anni.map(a=>`<th class="num">${esc(a)}</th>`).join("")}<th class="num">Δ%</th><th></th></tr></thead><tbody>`;
     v.items.forEach((it,ci)=>{
@@ -1819,54 +1827,33 @@ function openSegPrezzo(v,item){
   const o2=$("#ovl2"),p2=$("#panel2");
   const um=item?item.um:"";
   const prz=item?pLast(item.s):null;
-  let h=`<div class="phead"><span style="font-weight:700">⚑ Segnalazione prezzo materiale — fattura impresa</span><button class="x" id="spx">×</button></div>
+  let h=`<div class="phead"><span style="font-weight:700">\u2691 Segnala prezzo / invia fattura</span><button class="x" id="spx">\u00d7</button></div>
   <form class="sgform" id="spf">
-    <div class="ctx">Materiale: <b>${esc(v.label)}</b><br>Codice prezzario (2025): <b>${esc(v.code)}</b>${item&&item.c26?` · 2026: <b>${esc(item.c26)}</b>`:""}${item?`<br>Variante: ${esc(item.ds||item.c25)} — U.M. ${esc(um)}`:""}${prz!=null?`<br>Prezzo prezzario di riferimento: <b>${eur(prz)}</b>`:""}</div>
+    <div class="ctx">Materiale: <b>${esc(v.label)}</b><br>Codice prezzario: <b>${esc(v.code)}</b>${item?` \u00b7 unit\u00e0 di riferimento <b>${esc(um)}</b>`:""}${prz!=null?` \u00b7 prezzo rif. <b>${eur(prz)}</b>`:""}</div>
+    <div class="hint">\u00c8 sufficiente <b>allegare la fattura</b> all'email e premere invia: il riferimento al materiale \u00e8 gi\u00e0 compilato. I campi sotto sono <b>facoltativi</b>.</div>
     <div class="row2">
-      <div><label>Prezzo unitario pagato (€) *</label><input id="sp-prz" inputmode="decimal" placeholder="es. 0,72"><div class="err" id="sp-err">Indicare il prezzo unitario pagato.</div></div>
-      <div><label>Unità di misura</label><input id="sp-um" value="${esc(um)}" placeholder="es. kg, m³, cad"></div>
+      <div><label>Prezzo pagato \u2014 facoltativo</label><input id="sp-prz" inputmode="decimal" placeholder="\u20ac / ${esc(um||"unit\u00e0")}"></div>
+      <div><label>Impresa \u2014 facoltativo</label><input id="sp-imp" placeholder="Ragione sociale"></div>
     </div>
-    <div class="row2">
-      <div><label>Data della fattura</label><input id="sp-data" type="date"></div>
-      <div><label>Quantità acquistata (facoltativo)</label><input id="sp-qta" placeholder="es. 1.500"></div>
-    </div>
-    <div class="row2">
-      <div><label>Fornitore (facoltativo)</label><input id="sp-forn" placeholder="Ragione sociale fornitore"></div>
-      <div><label>N. fattura / DDT (facoltativo)</label><input id="sp-doc" placeholder="es. 2026/142"></div>
-    </div>
-    <div><label>Note (facoltativo)</label><textarea id="sp-note" placeholder="Condizioni di fornitura, zona di cantiere, oneri di trasporto inclusi/esclusi…"></textarea></div>
-    <div class="row2">
-      <div><label>Impresa (facoltativo)</label><input id="sp-imp" placeholder="Ragione sociale"></div>
-      <div><label>Email per ricontatto (facoltativo)</label><input id="sp-em" type="email" placeholder="nome@impresa.it"></div>
-    </div>
-    <label class="chk" style="text-transform:none;letter-spacing:0"><input type="checkbox" id="sp-all" checked> Allego la fattura (o il documento giustificativo) a questa email</label>
-    <button type="submit" class="send">Invia segnalazione via email</button>
-    <div class="hint">Si aprirà il programma di posta con il messaggio già compilato, indirizzato ad ANCE Piemonte Valle d'Aosta. <b>Allegare la fattura all'email prima di premere Invia</b> — per ragioni di sicurezza dei browser non è possibile allegarla automaticamente. I dati restano sul vostro computer fino all'invio.</div>
+    <button type="submit" class="send">\ud83d\udcce Apri email e allega la fattura</button>
+    <div class="hint">Si aprir\u00e0 il programma di posta con oggetto e riferimento gi\u00e0 pronti, indirizzato ad ANCE Piemonte Valle d'Aosta. <b>Allegare la fattura prima di inviare</b> (i browser non permettono l'allegato automatico).</div>
   </form>`;
   p2.innerHTML=h; o2.classList.add("show");
   $("#spx").onclick=closeSegnala;
   $("#spf").onsubmit=ev=>{
     ev.preventDefault();
-    const prval=$("#sp-prz").value.trim();
-    if(!prval){ $("#sp-err").style.display="block"; $("#sp-prz").focus(); return; }
     const L=[];
     L.push("SEGNALAZIONE PREZZO MATERIALE - Paniere monitoraggio ANCE");
     L.push("");
     L.push("Materiale: "+v.label);
     L.push("Codice prezzario 2025: "+v.code);
-    if(item){ L.push("Codice 2026: "+(item.c26||"-")); L.push("Variante: "+(item.ds||item.c25)); }
+    if(item){ L.push("Codice 2026: "+(item.c26||"-")); L.push("Unita di riferimento: "+um); }
     if(prz!=null) L.push("Prezzo prezzario di riferimento: "+fmt(prz)+" EUR / "+um);
     L.push("");
-    L.push("Prezzo pagato: "+prval+" EUR / "+($("#sp-um").value.trim()||um));
-    if($("#sp-data").value) L.push("Data fattura: "+$("#sp-data").value);
-    if($("#sp-qta").value.trim()) L.push("Quantita: "+$("#sp-qta").value.trim());
-    if($("#sp-forn").value.trim()) L.push("Fornitore: "+$("#sp-forn").value.trim());
-    if($("#sp-doc").value.trim()) L.push("N. fattura/DDT: "+$("#sp-doc").value.trim());
-    if($("#sp-note").value.trim()) L.push("Note: "+$("#sp-note").value.trim());
-    L.push("");
+    if($("#sp-prz").value.trim()) L.push("Prezzo pagato: "+$("#sp-prz").value.trim()+" EUR / "+um);
     if($("#sp-imp").value.trim()) L.push("Impresa: "+$("#sp-imp").value.trim());
-    if($("#sp-em").value.trim()) L.push("Email: "+$("#sp-em").value.trim());
-    if($("#sp-all").checked){ L.push(""); L.push(">>> IMPORTANTE: allegare la fattura a questa email prima dell'invio. <<<"); }
+    L.push("");
+    L.push(">>> Allegare la fattura a questa email prima dell'invio. <<<");
     const sub="Segnalazione prezzo materiale - "+v.code+" "+v.label.slice(0,40);
     location.href="mailto:"+SEGNALA_EMAIL.PIE+"?cc="+encodeURIComponent(SEGNALA_CC)+"&subject="+encodeURIComponent(sub)+"&body="+encodeURIComponent(L.join("\n"));
     closeSegnala();
