@@ -175,14 +175,14 @@ def main():
             items.append({"c25": c25v, "c26": c26v, "ds": dsv,
                           "um": (str(r[4]).strip() if r[4] is not None else ""), "s": serie})
         items.sort(key=lambda x: x["c25"])
-        has2026 = any(it["s"][5] is not None for it in items)
-        if not items: stato = "assente"; cov["ass"] += 1
-        elif not has2026: stato = "parziale"; cov["parz"] += 1
-        else: stato = "ok"; cov["ok"] += 1
-        rec = {"cat": cat, "code": code, "label": label, "stato": stato, "items": items}
+        # Monitoraggio: tenere solo le voci con prezzo nell'edizione 2026 vigente
+        items = [it for it in items if it["s"][5] is not None]
+        if not items: continue
+        cov["ok"] += 1
+        rec = {"cat": cat, "code": code, "label": label, "stato": "ok", "items": items}
         if nota: rec["nota"] = nota
         out_voci.append(rec)
-    data = {"anni": anni, "cats": cats_order,
+    data = {"anni": anni, "cats": [c for c in cats_order if any(v["cat"]==c for v in out_voci)],
         "fonte": "Prezzario Regione Piemonte - serie storica ufficiale 2022-2026 (mar 2022, lug 2022 straord., 2023, 2024, 2025, 2026), ricostruita con transcodifiche ufficiali. Integrazioni 2026 da analisi prezzi PIE 2026 dove la voce non e piu a listino. Elaborazione ANCE Piemonte Valle d'Aosta.",
         "voci": out_voci}
     with open(OUT, "w", encoding="utf-8") as f:
