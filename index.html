@@ -1770,10 +1770,10 @@ function pChart(items,anni){
   anni.forEach((a,i)=>{ g+=`<text x="${X(i).toFixed(1)}" y="${H-pb+16}" text-anchor="middle" font-size="9" fill="#67718a">${esc(a)}</text>`; });
   items.forEach((it,ci)=>{
     const col=PAL[ci%PAL.length]; const pts=[];
-    it.s.forEach((x,i)=>{ if(x==null) return; pts.push([X(i),Y(x)]); });
+    it.s.forEach((x,i)=>{ if(x==null) return; pts.push([X(i),Y(x),i,x]); });
     if(pts.length<1) return;
-    if(pts.length>1){ const dd=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" "); g+=`<path d="${dd}" fill="none" stroke="${col}" stroke-width="2"/>`; }
-    pts.forEach(p=>g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${col}"/>`);
+    if(pts.length>1){ const dd=pts.map((p,j)=>(j?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" "); g+=`<path d="${dd}" fill="none" stroke="${col}" stroke-width="2"/>`; }
+    pts.forEach(p=>{ const tip=esc(anni[p[2]]+": "+fmt(p[3])+" \u20ac/"+(it.um||"")+(it.ds?"  ("+it.ds+")":"")); g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${col}"><title>${tip}</title></circle><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="10" fill="transparent" style="cursor:pointer"><title>${tip}</title></circle>`; });
   });
   g+=`</svg>`;
   return g;
