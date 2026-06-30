@@ -1794,6 +1794,7 @@ function openPaniere(i,seg){
   h+=`<div class="pbody">${kp}`;
   if(v.stato==="assente") h+=`<div class="rafhint" style="background:#fdeec9;border:1px solid var(--amber);border-radius:8px;padding:8px 12px;margin-bottom:12px">Voce non presente nella serie storica del prezzario. Il prezzo va rilevato da fonte esterna (es. quotazioni MASE per i combustibili). Le imprese possono comunque segnalare i prezzi pagati.</div>`;
   else if(v.stato==="parziale") h+=`<div class="rafhint" style="background:#fdeec9;border:1px solid var(--amber);border-radius:8px;padding:8px 12px;margin-bottom:12px">Voce priva di prezzo nell'edizione 2026 (dismessa o ricodificata): l'ultimo dato ufficiale disponibile è quello indicato.</div>`;
+  if(v.nota) h+=`<div class="rafhint" style="background:#e8f0ff;border:1px solid var(--blue);border-radius:8px;padding:8px 12px;margin-bottom:12px">&#8505; ${esc(v.nota)}</div>`;
   if(v.items.length){
     h+=`<div class="sect"><h3>Andamento prezzo <small>serie ufficiale ${esc(d.anni[0])} → ${esc(d.anni[d.anni.length-1])}</small></h3>${pChart(v.items,d.anni)}`;
     if(v.items.length>1){ h+=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px">`; v.items.forEach((it,ci)=>{ h+=`<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:3px;background:${PAL[ci%PAL.length]};display:inline-block;border-radius:2px"></span>${esc(it.ds||it.c25)}</span>`; }); h+=`</div>`; }

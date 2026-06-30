@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Genera data/paniere.json per la card "Monitoraggio prezzi materiali".
-Fonte: RAFFRONTO/Serie_storica_PIE_2022-2026.xlsx (foglio "Serie storica"),
-serie ufficiale prezzario Piemonte 2022->2026, agganciata per Codice 2025.
+"""Genera data/paniere.json per la card Monitoraggio prezzi materiali.
+Fonte: RAFFRONTO/Serie_storica_PIE_2022-2026.xlsx (foglio Serie storica),
+serie ufficiale prezzario Piemonte 2022-2026, agganciata per Codice 2025.
+Integrazioni 2026 da 01 PIEMONTE 26/AP_2026.xlsx (analisi prezzi) per le voci
+non piu a listino (gasolio, benzina).
 """
-import json, os, re
+import json, os
 from python_calamine import CalamineWorkbook
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -11,7 +13,13 @@ ROOT = os.path.dirname(BASE)
 XLSX = os.path.join(ROOT, "RAFFRONTO", "Serie_storica_PIE_2022-2026.xlsx")
 OUT  = os.path.join(BASE, "data", "paniere.json")
 
-# (categoria, codice 2025, etichetta utente)
+# Valori 2026 dalle ANALISI PREZZI 2026 (AP_2026.xlsx) per voci dismesse dal listino.
+# codice 2025 -> (prezzo2026, codice risorsa 2026, nota)
+OVERRIDE_2026 = {
+    "01.P23.E80.005": (1.65, "PR195.G030.000.000", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR195.G030): voce non piu a listino."),
+    "01.P23.E70.010": (1.55, "PR195.B020.000.000", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR195.B020): voce non piu a listino."),
+}
+
 PANIERE = [
 ("BITUMI","01.P10.A50.005","Bitume semisolido 50/70 per pavimentazioni stradali"),
 ("BITUMI","01.P10.A57.005","Bitume semisolido Hard 45/80-70"),
@@ -70,7 +78,7 @@ PANIERE = [
 ("INERTI","01.P03.A10.015","Pietrischetto"),
 ("ISOLANTI","30.P50.G05","Lana di roccia in pannelli semirigidi"),
 ("ISOLANTI","30.P50.A00","Pannelli EPS"),
-("ISOLANTI","30.P50.B00","Pannello in polistirene espanso estruso XPS"),
+("ISOLANTI","30.P50.B00","Pannello in polistirene espanso estruso (XPS)"),
 ("LATERIZI","01.P04.F50","Blocchi in laterizio alleggerito porizzato portante"),
 ("LATERIZI","30.P20.B00","Blocchi in laterizio portanti antisismici"),
 ("LATERIZI","01.P04.F10","Blocchi semipieni portanti alte prestazioni termiche"),
@@ -115,8 +123,8 @@ PANIERE = [
 ("TUBAZIONI","01.P08.A19","Tubo PVC rigido scarichi non a pressione UNI EN 1401 - 6 m"),
 ("COMBUSTIBILI ED ENERGIA","01.P23.E80","Gasolio"),
 ("COMBUSTIBILI ED ENERGIA","01.P23.E70","Benzina"),
+("COMBUSTIBILI ED ENERGIA","01.P23.F15.005","Gas propano (in bombole)"),
 ("COMBUSTIBILI ED ENERGIA","01.P99.D45.005","Energia elettrica"),
-("COMBUSTIBILI ED ENERGIA","01.P99.D55.005","Gas"),
 ("COMBUSTIBILI ED ENERGIA","01.P99.D01.010","Acqua"),
 ("LEGANTI","01.P02.A05.005","Cemento sfuso 32,5"),
 ("LEGANTI","01.P02.A05.010","Cemento in sacchi 32,5"),
@@ -130,77 +138,57 @@ PANIERE = [
 def num(x):
     if x is None or x == "": return None
     try:
-        v = float(x)
-        return round(v, 4)
+        return round(float(x), 4)
     except (TypeError, ValueError):
         return None
 
 def main():
     wb = CalamineWorkbook.from_path(XLSX)
     rows = wb.get_sheet_by_name("Serie storica").to_python()
-    header = rows[0]
-    # colonne: 1=Codice2025 2=Codice2026 3=Descr 4=UM 5..10=prezzi 2022..2026
     idx = {}
     for r in rows[1:]:
         c25 = str(r[1]).strip() if r[1] is not None else ""
         if c25:
             idx.setdefault(c25, []).append(r)
-
     anni = ["mar 2022", "lug 2022", "2023", "2024", "2025", "2026"]
     out_voci = []
     cats_order = []
-    coverage = {"con_serie": 0, "senza_2026": 0, "assenti": 0}
-
+    cov = {"ok": 0, "parz": 0, "ass": 0}
     for cat, code, label in PANIERE:
         if cat not in cats_order: cats_order.append(cat)
-        # match per codice 2025 esatto o per prefisso
         matched = []
         for c25, rs in idx.items():
             if c25 == code or c25.startswith(code + "."):
                 matched.extend(rs)
         items = []
+        nota = ""
         for r in matched:
             serie = [num(r[i]) for i in range(5, 11)]
+            c25v = str(r[1]).strip()
+            c26v = str(r[2]).strip() if r[2] is not None else ""
+            dsv = str(r[3]).strip() if r[3] is not None else ""
+            if c25v in OVERRIDE_2026 and serie[5] is None:
+                val, code26, n = OVERRIDE_2026[c25v]
+                serie[5] = val; c26v = code26; nota = n
+                dsv = (dsv + " - 2026 da analisi prezzi PIE").strip(" -")
             if all(v is None for v in serie): continue
-            items.append({
-                "c25": str(r[1]).strip(),
-                "c26": str(r[2]).strip() if r[2] is not None else "",
-                "ds": (str(r[3]).strip() if r[3] is not None else ""),
-                "um": (str(r[4]).strip() if r[4] is not None else ""),
-                "s": serie,
-            })
+            items.append({"c25": c25v, "c26": c26v, "ds": dsv,
+                          "um": (str(r[4]).strip() if r[4] is not None else ""), "s": serie})
         items.sort(key=lambda x: x["c25"])
-        # stato copertura
         has2026 = any(it["s"][5] is not None for it in items)
-        if not items:
-            stato = "assente"; coverage["assenti"] += 1
-        elif not has2026:
-            stato = "parziale"; coverage["senza_2026"] += 1
-        else:
-            stato = "ok"; coverage["con_serie"] += 1
-        out_voci.append({
-            "cat": cat, "code": code, "label": label,
-            "stato": stato, "items": items,
-        })
-
-    data = {
-        "anni": anni,
-        "cats": cats_order,
-        "fonte": "Prezzario Regione Piemonte - serie storica ufficiale 2022-2026 (mar 2022, lug 2022 straord., 2023, 2024, 2025, 2026), ricostruita con transcodifiche ufficiali. Elaborazione ANCE Piemonte Valle d'Aosta.",
-        "voci": out_voci,
-    }
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+        if not items: stato = "assente"; cov["ass"] += 1
+        elif not has2026: stato = "parziale"; cov["parz"] += 1
+        else: stato = "ok"; cov["ok"] += 1
+        rec = {"cat": cat, "code": code, "label": label, "stato": stato, "items": items}
+        if nota: rec["nota"] = nota
+        out_voci.append(rec)
+    data = {"anni": anni, "cats": cats_order,
+        "fonte": "Prezzario Regione Piemonte - serie storica ufficiale 2022-2026 (mar 2022, lug 2022 straord., 2023, 2024, 2025, 2026), ricostruita con transcodifiche ufficiali. Integrazioni 2026 da analisi prezzi PIE 2026 dove la voce non e piu a listino. Elaborazione ANCE Piemonte Valle d'Aosta.",
+        "voci": out_voci}
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
-
-    nit = sum(len(v["items"]) for v in out_voci)
-    print("Materiali nel paniere:", len(out_voci))
-    print("  con serie completa (con 2026):", coverage["con_serie"])
-    print("  parziali (senza prezzo 2026):", coverage["senza_2026"])
-    print("  assenti dalla serie storica:", coverage["assenti"])
-    print("Totale varianti agganciate:", nit)
-    print("Categorie:", len(cats_order))
-    print("Scritto:", OUT, "(", round(os.path.getsize(OUT)/1024, 1), "KB )")
+    print("Materiali:", len(out_voci), "| ok:", cov["ok"], "parziali:", cov["parz"], "assenti:", cov["ass"])
+    print("Varianti:", sum(len(v["items"]) for v in out_voci), "| KB:", round(os.path.getsize(OUT)/1024,1))
 
 if __name__ == "__main__":
     main()
