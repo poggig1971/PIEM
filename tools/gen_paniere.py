@@ -24,8 +24,12 @@ OVERRIDE_2026 = {
 
 # Note descrittive per codice 2025 (senza modificare i valori)
 NOTE_C25 = {
-    "01.P25.A60.005": "Nel prezzario 2026 le voci ponteggi sono state ristrutturate: il prezzo per i primi 30 giorni cambia sensibilmente rispetto alle edizioni precedenti; il confronto storico non e direttamente omogeneo (verificare sulla pubblicazione ufficiale).",
+    "01.P25.A60.005": "Nel 2026 la struttura tariffaria dei ponteggi e stata rivista: il nolo 'primi 30 giorni' e riallineato a livello quasi mensile e il montaggio/smontaggio e una voce separata. Lo storico pre-2026 non e comparabile: viene mostrato solo il 2026.",
+    "01.P25.A75.005": "Nel 2026 la struttura tariffaria dei ponteggi e stata rivista: il nolo 'primi 30 giorni' e riallineato a livello quasi mensile e il montaggio/smontaggio e una voce separata. Lo storico pre-2026 non e comparabile: viene mostrato solo il 2026.",
 }
+
+# Voci con perimetro cambiato nel 2026: azzerare lo storico pre-2026 (mostrare solo il 2026)
+BLANK_PRE2026 = {"01.P25.A60.005", "01.P25.A75.005"}
 
 PANIERE = [
 ("BITUMI","01.P10.A50.005","Bitume semisolido 50/70 per pavimentazioni stradali"),
@@ -140,7 +144,12 @@ PANIERE = [
 ("LEGANTI","01.P02.A05.045","Cemento sfuso 52,5"),
 ("LEGANTI","01.P02.A05.050","Cemento in sacchi 52,5"),
 ("LEGANTI","01.P02.B30.005","Calce spenta"),
-("PONTEGGI","01.P25.A60.005","Ponteggio tubolare esterno tubo-giunto - primi 30 giorni"),
+("PONTEGGI","01.P25.A60.005","Ponteggio tubo-giunto - nolo primi 30 giorni"),
+("PONTEGGI","01.P25.A60.010","Ponteggio tubo-giunto - nolo mensile oltre il primo mese"),
+("PONTEGGI","01.P25.A75.005","Ponteggio a telai prefabbricati - nolo primi 30 giorni"),
+("PONTEGGI","01.P25.A75.010","Ponteggio a telai prefabbricati - nolo mensile oltre il primo mese"),
+("PONTEGGI","01.P25.A70.005","Montaggio e smontaggio ponteggio tubolare"),
+("PONTEGGI","01.P25.A90.005","Montaggio e smontaggio ponteggio a telai"),
 ]
 
 def num(x):
@@ -183,6 +192,9 @@ def main():
             items.append({"c25": c25v, "c26": c26v, "ds": dsv,
                           "um": (str(r[4]).strip() if r[4] is not None else ""), "s": serie})
         items.sort(key=lambda x: x["c25"])
+        for it in items:
+            if it["c25"] in BLANK_PRE2026:
+                it["s"] = [None, None, None, None, None, it["s"][5]]
         # Monitoraggio: tenere solo le voci con prezzo nell'edizione 2026 vigente
         items = [it for it in items if it["s"][5] is not None]
         if not items: continue
