@@ -18,6 +18,8 @@ OUT  = os.path.join(BASE, "data", "paniere.json")
 OVERRIDE_2026 = {
     "01.P23.E80.005": (1.65, "PR195.G030.000.000", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR195.G030): voce non piu a listino."),
     "01.P23.E70.010": (1.55, "PR195.B020.000.000", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR195.B020): voce non piu a listino."),
+    "01.P10.A50.005": (0.67, "PR015.B005.000.010", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR015.B005, bitume tal quale penetrazione 50/70): voce non piu a listino; prezzo componente non ufficiale."),
+    "01.P10.A57.005": (0.72, "PR015.B010.000.000", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR015.B010, bitume modificato tipo hard 45/80-70): voce non piu a listino; prezzo componente non ufficiale."),
 }
 
 # Note descrittive per codice 2025 (senza modificare i valori)
