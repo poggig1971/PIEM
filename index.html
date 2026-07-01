@@ -1725,7 +1725,7 @@ async function renderPaniere(){
   const q=norm((S.monQ||"").trim());
   if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat).includes(q));
   let h=`<div class="rafhint" style="margin-bottom:10px">Paniere di materiali da monitorare nel tempo. La colonna <b>andamento</b> mostra la serie ufficiale del Prezzario Piemonte ${esc(d.anni[0])}→${esc(d.anni[d.anni.length-1])}. Le imprese possono comunicare il prezzo effettivamente pagato allegando la <b>fattura</b> con il pulsante «Segnala prezzo». Cliccare una riga per il dettaglio e il grafico.</div>`;
-  h+=`<div class="bar" style="display:flex"><input type="text" id="monq" placeholder="Filtra per materiale o codice…" value="${esc(S.monQ||"")}" style="flex:1;min-width:200px;max-width:380px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"><span class="res">${rows.length} materiali</span><button class="exp" id="moncsv">&#11015; Esporta CSV</button></div>`;
+  h+=`<div class="bar" style="display:flex"><input type="text" id="monq" placeholder="Filtra per materiale o codice…" value="${esc(S.monQ||"")}" style="flex:1;min-width:200px;max-width:380px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"><span class="res">${rows.length} materiali</span><button class="exp" id="moncsv">&#11015; Esporta CSV</button><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut);white-space:nowrap"><input type="checkbox" id="monvar"> con tutte le varianti</label><button class="exp" id="monprint">&#128424;&#65039; Stampa elenco</button></div>`;
   if(!rows.length){ h+=`<div class="empty">Nessun materiale per i filtri impostati.</div>`; $("#results").innerHTML=h; bindMon(); return; }
   let lastCat=null;
   h+=`<table class="lst"><thead><tr><th>Materiale</th><th>U.M.</th><th class="num">Prezzo ${esc(d.anni[d.anni.length-1])} €</th><th class="num">Δ% ${esc(d.anni[d.anni.length-2])}→${esc(d.anni[d.anni.length-1])}</th><th>Andamento</th><th class="num">Varianti</th><th></th></tr></thead><tbody>`;
@@ -1754,6 +1754,7 @@ async function renderPaniere(){
 function bindMon(){
   const q=$("#monq"); if(q){ let t=null; q.oninput=e=>{ S.monQ=e.target.value; clearTimeout(t); t=setTimeout(renderPaniere,250); }; }
   const cs=$("#moncsv"); if(cs) cs.onclick=pExportCsv;
+  const pb=$("#monprint"); if(pb) pb.onclick=()=>printPaniereList(!!($("#monvar")&&$("#monvar").checked));
   document.querySelectorAll("#results tr[data-i]").forEach(tr=>tr.onclick=e=>{ if(e.target.closest(".monseg")) return; openPaniere(+tr.dataset.i); });
   document.querySelectorAll("#results .monseg").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPaniere(+b.dataset.i,true); });
 }
@@ -1880,6 +1881,39 @@ function openSegPrezzo(v,item){
     location.href="mailto:"+SEGNALA_EMAIL.PIE+"?cc="+encodeURIComponent(SEGNALA_CC)+"&subject="+encodeURIComponent(sub)+"&body="+encodeURIComponent(L.join("\n"));
     closeSegnala();
   };
+}
+function printPaniereList(withVar){
+  const d=PANI; if(!d) return;
+  let rows=d.voci.filter(v=>!S.monCat||v.cat===S.monCat);
+  const q=norm((S.monQ||"").trim());
+  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat).includes(q));
+  const oggi=new Date().toLocaleDateString("it-IT");
+  const nc=withVar?11:5;
+  let h=`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Monitoraggio prezzi materiali</title>`;
+  h+=`<style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1c2330;font-size:11px;margin:14px}h1{font-size:15px;color:#15295e;margin:0 0 2px}.sub{color:#67718a;font-size:10px;margin-bottom:10px}table{width:100%;border-collapse:collapse}th{background:#15295e;color:#fff;text-align:left;padding:5px 7px;font-size:9.5px}td{padding:4px 7px;border-bottom:1px solid #dde3ef;vertical-align:top}tr.cat td{background:#eef2fb;color:#15295e;font-weight:700;text-transform:uppercase;font-size:9.5px}.num{text-align:right;font-variant-numeric:tabular-nums}.cod{font-family:Consolas,monospace;color:#2553c7;font-size:9px}tr.var td{background:#fbfcff;color:#42506b}@media print{@page{size:A4 landscape;margin:10mm}}</style></head><body>`;
+  h+=`<h1>Monitoraggio prezzi materiali \u2014 paniere imprese</h1>`;
+  h+=`<div class="sub">ANCE Piemonte Valle d'Aosta \u00b7 Prezzario Piemonte serie 2022-2026 \u00b7 stampato il ${oggi}${S.monCat?" \u00b7 categoria: "+esc(catLab(S.monCat)):""}${q?" \u00b7 filtro: "+esc(S.monQ):""} \u00b7 ${rows.length} materiali${withVar?" \u00b7 albero completo con varianti":""}</div>`;
+  h+=`<table><thead><tr><th>Materiale</th><th>Codice</th><th>U.M.</th><th class="num">Prezzo ${esc(d.anni[5])} \u20ac</th><th class="num">\u0394% ${esc(d.anni[4])}\u2192${esc(d.anni[5])}</th>`;
+  if(withVar) h+=d.anni.map(a=>`<th class="num">${esc(a)}</th>`).join("");
+  h+=`</tr></thead><tbody>`;
+  let lastCat=null;
+  rows.forEach(v=>{
+    if(v.cat!==lastCat){ lastCat=v.cat; h+=`<tr class="cat"><td colspan="${nc}">${esc(catLab(v.cat))}</td></tr>`; }
+    const rep=pRep(v); const pr=rep?pLast(rep.s):null; const dl=rep?pDelta(rep.s):null;
+    h+=`<tr><td>${esc(v.label)}</td><td class="cod">${esc(v.code)}</td><td>${rep?esc(rep.um):"\u2014"}</td><td class="num">${pr!=null?fmt(pr)+" \u20ac":"\u2014"}</td><td class="num">${dl!=null?(dl>0?"+":"")+fmt(dl,1)+"%":"n.d."}</td>`;
+    if(withVar) h+=`<td class="num" colspan="6"></td>`;
+    h+=`</tr>`;
+    if(withVar){
+      v.items.forEach(it=>{
+        h+=`<tr class="var"><td>&nbsp;&nbsp;\u21b3 ${esc(it.ds||"")}</td><td class="cod">${esc(it.c26||it.c25)}</td><td>${esc(it.um)}</td><td class="num"></td><td class="num"></td>${it.s.map(x=>`<td class="num">${x!=null?fmt(x):"\u2014"}</td>`).join("")}</tr>`;
+      });
+    }
+  });
+  h+=`</tbody></table></body></html>`;
+  const w=window.open("","_blank");
+  if(!w){ alert("Per stampare, consentire le finestre popup per questo sito."); return; }
+  w.document.write(h); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
 }
 function pExportCsv(){
   const d=PANI; if(!d) return;
