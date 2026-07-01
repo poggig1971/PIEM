@@ -1940,7 +1940,7 @@ function renderRegions(){
     const b=document.createElement("button");
     b.className="reg"+(r===S.region?" active":"");
     b.innerHTML=esc(info.nome)+(r==="PAN"?'<span class="soon">solo analisi</span>':"")+(r==="RAF"?'<span class="soon">storico PIE</span>':"")+(r==="MON"?'<span class="soon">paniere · fatture</span>':"")+(r==="CMP"?'<span class="soon">risorse</span>':"")+((r==="CMP"||r==="TOL")?'<span class="exp" title="Scheda sperimentale: elaborazione ANCE non ufficiale, dati indicativi da validare">sperimentale</span>':"");
-    b.onclick=async()=>{ S.region=r; S.path=null; S.sort=null; S.q=""; $("#q").value=""; S.pieSez=null; S.pieFam=null; S.pieCaps=null; S.grpOpen=true;
+    b.onclick=async()=>{ S.region=r; try{history.replaceState(null,"",r==="MON"?"#monitoraggio":location.pathname+location.search);}catch(e){} S.path=null; S.sort=null; S.q=""; $("#q").value=""; S.pieSez=null; S.pieFam=null; S.pieCaps=null; S.grpOpen=true;
       renderRegions(); renderHeader(); renderTabs(); showLoading();
       if(r==="RAF"||r==="CMP"||r==="TOL"||r==="MON"){ $("#tree").innerHTML=""; if(r==="RAF") renderRaffronto(); else if(r==="CMP") renderCmp(); else if(r==="TOL") renderTolSim(); else renderPaniere(); return; }
       await loadPart(curPart()); renderTree(); applyFilter(); renderTabs(); };
@@ -2004,6 +2004,7 @@ $("#onlysic").onchange=applyFilter;
 $("#treset").onclick=()=>{ S.path=null; renderTree(); applyFilter(); };
 
 (async function init(){
+  if(/^#(monitoraggio|mon)\b/i.test(location.hash)) S.region="MON";
   renderRegions(); renderHeader(); renderTabs();
   showLoading();
   await loadPart("P");
