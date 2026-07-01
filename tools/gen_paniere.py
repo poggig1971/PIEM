@@ -26,10 +26,11 @@ OVERRIDE_2026 = {
 NOTE_C25 = {
     "01.P25.A60.005": "Nel 2026 la struttura tariffaria dei ponteggi e stata rivista: il nolo 'primi 30 giorni' e riallineato a livello quasi mensile e il montaggio/smontaggio e una voce separata. Lo storico pre-2026 non e comparabile: viene mostrato solo il 2026.",
     "01.P25.A75.005": "Nel 2026 la struttura tariffaria dei ponteggi e stata rivista: il nolo 'primi 30 giorni' e riallineato a livello quasi mensile e il montaggio/smontaggio e una voce separata. Lo storico pre-2026 non e comparabile: viene mostrato solo il 2026.",
+    "01.P25.A98.005": "Voce che nel 2026 non trova piu corrispondenza omogenea: il nolo 'primi 30 giorni' del ponteggio multidirezionale passa da ~24 a 3,06 EUR/m2 per il cambio di perimetro (montaggio/smontaggio scorporato). Storico pre-2026 non comparabile: mostrato solo il 2026.",
 }
 
 # Voci con perimetro cambiato nel 2026: azzerare lo storico pre-2026 (mostrare solo il 2026)
-BLANK_PRE2026 = {"01.P25.A60.005", "01.P25.A75.005"}
+BLANK_PRE2026 = {"01.P25.A60.005", "01.P25.A75.005", "01.P25.A98.005"}
 
 PANIERE = [
 ("BITUMI","01.P10.A50.005","Bitume semisolido 50/70 per pavimentazioni stradali"),
@@ -150,6 +151,7 @@ PANIERE = [
 ("PONTEGGI","01.P25.A75.010","Ponteggio a telai prefabbricati - nolo mensile oltre il primo mese"),
 ("PONTEGGI","01.P25.A70.005","Montaggio e smontaggio ponteggio tubolare"),
 ("PONTEGGI","01.P25.A90.005","Montaggio e smontaggio ponteggio a telai"),
+("PONTEGGI","01.P25.A98.005","Ponteggio multidirezionale - nolo primi 30 giorni"),
 ]
 
 def num(x):
