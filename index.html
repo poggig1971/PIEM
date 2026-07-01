@@ -530,6 +530,7 @@ function buildTreeF(voci){
   return root;
 }
 function renderTree(){
+  if(S.region==="MON"){ renderPaniere(); return; }
   if(isPieReg()){ renderPieSidebar(); return; }
   const d=S.data[curPart()];
   const el=$("#tree"); el.innerHTML="";
