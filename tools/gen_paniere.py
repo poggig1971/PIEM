@@ -20,6 +20,11 @@ OVERRIDE_2026 = {
     "01.P23.E70.010": (1.55, "PR195.B020.000.000", "Valore 2026 dalle analisi prezzi PIE 2026 (risorsa PR195.B020): voce non piu a listino."),
 }
 
+# Note descrittive per codice 2025 (senza modificare i valori)
+NOTE_C25 = {
+    "01.P25.A60.005": "Nel prezzario 2026 le voci ponteggi sono state ristrutturate: il prezzo per i primi 30 giorni cambia sensibilmente rispetto alle edizioni precedenti; il confronto storico non e direttamente omogeneo (verificare sulla pubblicazione ufficiale).",
+}
+
 PANIERE = [
 ("BITUMI","01.P10.A50.005","Bitume semisolido 50/70 per pavimentazioni stradali"),
 ("BITUMI","01.P10.A57.005","Bitume semisolido Hard 45/80-70"),
@@ -133,6 +138,7 @@ PANIERE = [
 ("LEGANTI","01.P02.A05.045","Cemento sfuso 52,5"),
 ("LEGANTI","01.P02.A05.050","Cemento in sacchi 52,5"),
 ("LEGANTI","01.P02.B30.005","Calce spenta"),
+("PONTEGGI","01.P25.A60.005","Ponteggio tubolare esterno tubo-giunto - primi 30 giorni"),
 ]
 
 def num(x):
@@ -178,6 +184,7 @@ def main():
         # Monitoraggio: tenere solo le voci con prezzo nell'edizione 2026 vigente
         items = [it for it in items if it["s"][5] is not None]
         if not items: continue
+        if not nota and code in NOTE_C25: nota = NOTE_C25[code]
         cov["ok"] += 1
         rec = {"cat": cat, "code": code, "label": label, "stato": "ok", "items": items}
         if nota: rec["nota"] = nota
