@@ -1736,7 +1736,7 @@ async function renderPaniere(){
   document.querySelector(".bar").style.display="none";
   let rows=d.voci.filter(v=>!S.monCat||v.cat===S.monCat);
   const q=norm((S.monQ||"").trim());
-  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat).includes(q));
+  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat+" "+v.items.map(it=>it.c26||"").join(" ")).includes(q));
   let h=`<div class="rafhint" style="margin-bottom:10px">Paniere di materiali da monitorare nel tempo. La colonna <b>andamento</b> mostra la serie ufficiale del Prezzario Piemonte ${esc(d.anni[0])}→${esc(d.anni[d.anni.length-1])}. Le imprese possono comunicare il prezzo effettivamente pagato allegando la <b>fattura</b> con il pulsante «Segnala prezzo». Cliccare una riga per il dettaglio e il grafico.</div>`;
   h+=`<div class="bar" style="display:flex"><input type="text" id="monq" placeholder="Filtra per materiale o codice…" value="${esc(S.monQ||"")}" style="flex:1;min-width:200px;max-width:380px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"><span class="res">${rows.length} materiali</span><button class="exp" id="moncsv">&#11015; Esporta CSV</button><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut);white-space:nowrap"><input type="checkbox" id="monvar"> con tutte le varianti</label><button class="exp" id="monprint">&#128424;&#65039; Stampa elenco</button></div>`;
   if(!rows.length){ h+=`<div class="empty">Nessun materiale per i filtri impostati.</div>`; $("#results").innerHTML=h; bindMon(); return; }
@@ -1751,7 +1751,7 @@ async function renderPaniere(){
     const dl=rep?pDelta(rep.s):null;
     const note=v.stato==="assente"?'<span class="badge b-blue" title="Non presente nella serie storica: prezzo da fonte esterna">fonte esterna</span>':(v.stato==="parziale"?'<span class="badge b-amber" title="Voce senza prezzo 2026: ultimo dato disponibile">ed. 2025</span>':"");
     h+=`<tr data-i="${i}">
-      <td><div style="font-weight:600">${esc(v.label)}</div><div style="font-family:Consolas,monospace;font-size:10px;color:var(--blue)">${esc(v.code)}</div></td>
+      <td><div style="font-weight:600">${esc(v.label)}</div><div style="font-family:Consolas,monospace;font-size:10px;color:var(--blue)">${esc(v.code)}</div>${rep&&rep.c26?`<div style="font-family:Consolas,monospace;font-size:10px;color:var(--mut)">${esc(rep.c26)} (2026)${v.items.length>1?` · +${v.items.length-1} ${v.items.length>2?"varianti":"variante"}`:""}</div>`:""}</td>
       <td class="um">${rep?esc(rep.um):"—"}</td>
       <td class="num">${pr!=null?(showPr?eur(pr):'<span style="color:var(--mut)">'+eur(pr)+'</span>'):"—"} ${note}</td>
       <td class="num">${dBadge(dl)}</td>
@@ -1899,7 +1899,7 @@ function printPaniereList(withVar){
   const d=PANI; if(!d) return;
   let rows=d.voci.filter(v=>!S.monCat||v.cat===S.monCat);
   const q=norm((S.monQ||"").trim());
-  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat).includes(q));
+  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat+" "+v.items.map(it=>it.c26||"").join(" ")).includes(q));
   const oggi=new Date().toLocaleDateString("it-IT");
   const nc=withVar?11:5;
   let h=`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Monitoraggio prezzi materiali</title>`;
@@ -1913,7 +1913,7 @@ function printPaniereList(withVar){
   rows.forEach(v=>{
     if(v.cat!==lastCat){ lastCat=v.cat; h+=`<tr class="cat"><td colspan="${nc}">${esc(catLab(v.cat))}</td></tr>`; }
     const rep=pRep(v); const pr=rep?pLast(rep.s):null; const dl=rep?pDelta(rep.s):null;
-    h+=`<tr><td>${esc(v.label)}</td><td class="cod">${esc(v.code)}</td><td>${rep?esc(rep.um):"\u2014"}</td><td class="num">${pr!=null?fmt(pr)+" \u20ac":"\u2014"}</td><td class="num">${dl!=null?(dl>0?"+":"")+fmt(dl,1)+"%":"n.d."}</td>`;
+    h+=`<tr><td>${esc(v.label)}</td><td class="cod">${esc(v.code)}${rep&&rep.c26?`<br><span style="color:#67718a">${esc(rep.c26)} (2026)</span>`:""}</td><td>${rep?esc(rep.um):"\u2014"}</td><td class="num">${pr!=null?fmt(pr)+" \u20ac":"\u2014"}</td><td class="num">${dl!=null?(dl>0?"+":"")+fmt(dl,1)+"%":"n.d."}</td>`;
     if(withVar) h+=`<td class="num" colspan="6"></td>`;
     h+=`</tr>`;
     if(withVar){
@@ -1932,7 +1932,7 @@ function pExportCsv(){
   const d=PANI; if(!d) return;
   let rows=d.voci.filter(v=>!S.monCat||v.cat===S.monCat);
   const q=norm((S.monQ||"").trim());
-  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat).includes(q));
+  if(q) rows=rows.filter(v=>norm(v.label+" "+v.code+" "+v.cat+" "+v.items.map(it=>it.c26||"").join(" ")).includes(q));
   const head=["Categoria","Materiale","Codice 2025","Codice 2026","Descrizione variante","UM",...d.anni,"Delta% "+d.anni[0]+"-"+d.anni[d.anni.length-1]];
   const lines=[head.map(csvc).join(";")];
   rows.forEach(v=>{ if(!v.items.length){ lines.push([catLab(v.cat),v.label,v.code,"","","",...d.anni.map(()=>""),""].map(csvc).join(";")); return; }
